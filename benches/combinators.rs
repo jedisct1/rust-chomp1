@@ -7,8 +7,8 @@ use test::Bencher;
 
 use std::iter;
 
-use chomp::prelude::*;
 use chomp::buffer::InputBuf;
+use chomp::prelude::*;
 
 #[bench]
 fn count_vec_1k(b: &mut Bencher) {
@@ -18,9 +18,7 @@ fn count_vec_1k(b: &mut Bencher) {
         count(i, 1024, any)
     }
 
-    b.iter(|| {
-        parse_only(count_vec, &data)
-    })
+    b.iter(|| parse_only(count_vec, &data))
 }
 
 #[bench]
@@ -31,9 +29,7 @@ fn count_vec_10k(b: &mut Bencher) {
         count(i, 10240, any)
     }
 
-    b.iter(|| {
-        parse_only(count_vec, &data)
-    })
+    b.iter(|| parse_only(count_vec, &data))
 }
 
 #[bench]
@@ -44,9 +40,7 @@ fn many_vec_1k(b: &mut Bencher) {
         many(i, any)
     }
 
-    b.iter(|| {
-        parse_only(many_vec, &data)
-    })
+    b.iter(|| parse_only(many_vec, &data))
 }
 
 #[bench]
@@ -57,9 +51,7 @@ fn many_vec_10k(b: &mut Bencher) {
         many(i, any)
     }
 
-    b.iter(|| {
-        parse_only(many_vec, &data)
-    })
+    b.iter(|| parse_only(many_vec, &data))
 }
 
 #[bench]
@@ -70,9 +62,7 @@ fn many1_vec_1k(b: &mut Bencher) {
         many1(i, any)
     }
 
-    b.iter(|| {
-        parse_only(many1_vec, &data)
-    })
+    b.iter(|| parse_only(many1_vec, &data))
 }
 
 #[bench]
@@ -83,9 +73,7 @@ fn many1_vec_10k(b: &mut Bencher) {
         many1(i, any)
     }
 
-    b.iter(|| {
-        parse_only(many1_vec, &data)
-    })
+    b.iter(|| parse_only(many1_vec, &data))
 }
 
 #[bench]
@@ -96,9 +84,7 @@ fn count_vec_10k_maybe_incomplete(b: &mut Bencher) {
         count(i, 10024, any)
     }
 
-    b.iter(|| {
-        count_vec(InputBuf::new(&data))
-    })
+    b.iter(|| count_vec(InputBuf::new(&data)))
 }
 
 #[bench]
@@ -109,9 +95,7 @@ fn many_vec_10k_maybe_incomplete(b: &mut Bencher) {
         many(i, any)
     }
 
-    b.iter(|| {
-        many_vec(InputBuf::new(&data))
-    })
+    b.iter(|| many_vec(InputBuf::new(&data)))
 }
 
 #[bench]
@@ -122,7 +106,5 @@ fn many1_vec_10k_maybe_incomplete(b: &mut Bencher) {
         many1(i, any)
     }
 
-    b.iter(|| {
-        many1_vec(InputBuf::new(&data))
-    })
+    b.iter(|| many1_vec(InputBuf::new(&data)))
 }

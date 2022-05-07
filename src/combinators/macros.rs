@@ -1,4 +1,3 @@
-
 /// Macro to implement and run a parser iterator, it provides the ability to add an extra state
 /// variable into it and also provide a size_hint as well as a pre- and on-next hooks.
 macro_rules! run_iter {
@@ -89,7 +88,7 @@ macro_rules! run_iter {
             state:  None,
             parser: $parser,
             buf:    Some($input),
-            mark:   mark,
+            mark,
             data:   $data,
             _t:     PhantomData,
         };
@@ -210,20 +209,20 @@ macro_rules! run_iter_till {
 /// buffer position will be updated and the state set to `EndStateTill::EndSuccess` and a `None`
 /// will be returned, stopping the iteration. If the test fails execution continues.
 macro_rules! iter_till_end_test {
-    ( $the_self:ident ) => { {
+    ( $the_self:ident ) => {{
         // TODO: Remove the branches here (ie. take + unwrap)
         let i = $the_self.buf.take().expect("Iter.buf was None");
         let m = i.mark();
 
         match ($the_self.end)(i).into_inner() {
             (b, Ok(_)) => {
-                $the_self.buf   = Some(b);
+                $the_self.buf = Some(b);
                 $the_self.state = EndStateTill::EndSuccess;
 
-                return None
-            },
+                return None;
+            }
             // Failed to end, restore and continue
-            (b, Err(_))      => $the_self.buf = Some(b.restore(m)),
+            (b, Err(_)) => $the_self.buf = Some(b.restore(m)),
         }
-    } }
+    }};
 }

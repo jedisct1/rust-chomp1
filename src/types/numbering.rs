@@ -40,8 +40,8 @@
 //! # }
 //! ```
 
-use primitives::{Guard, IntoInner};
-use types::{Buffer, Input};
+use crate::primitives::{Guard, IntoInner};
+use crate::types::{Buffer, Input};
 
 /// Trait for managing some kind of numbering over the parsed data.
 pub trait Numbering: Clone {
@@ -50,11 +50,12 @@ pub trait Numbering: Clone {
 
     /// Updates the numbering based on the contents of the buffer, adding it to the current
     /// numbering.
-    fn update<B>(&mut self, &B)
-      where B: Buffer<Token=Self::Token>;
+    fn update<B>(&mut self, _: &B)
+    where
+        B: Buffer<Token = Self::Token>;
 
     /// Adds the token to the numbering.
-    fn add(&mut self, Self::Token);
+    fn add(&mut self, _: Self::Token);
 }
 
 /// Struct counting the number of newlines (`b'\n'`).
@@ -78,14 +79,18 @@ impl Default for LineNumber {
 }
 
 impl Numbering for LineNumber {
-    type Token  = u8;
+    type Token = u8;
 
     fn update<B>(&mut self, b: &B)
-      where B: Buffer<Token=Self::Token> {
+    where
+        B: Buffer<Token = Self::Token>,
+    {
         let mut n = 0;
 
-        b.iterate(|c| if c == b'\n' {
-            n += 1;
+        b.iterate(|c| {
+            if c == b'\n' {
+                n += 1;
+            }
         });
 
         self.0 += n
@@ -100,18 +105,15 @@ impl Numbering for LineNumber {
 
 /// Wrapper around an `Input` implementation providing numbering support.
 #[derive(Debug)]
-pub struct InputPosition<I: Input, N: Numbering<Token=I::Token>> {
+pub struct InputPosition<I: Input, N: Numbering<Token = I::Token>> {
     input: I,
-    num:   N,
+    num: N,
 }
 
-impl<I: Input, N: Numbering<Token=I::Token>> InputPosition<I, N> {
+impl<I: Input, N: Numbering<Token = I::Token>> InputPosition<I, N> {
     /// Creates a new input position instance.
     pub fn new(i: I, n: N) -> Self {
-        InputPosition {
-            input: i,
-            num:   n,
-        }
+        InputPosition { input: i, num: n }
     }
 
     /// Obtains the current position of the numbering.
@@ -120,7 +122,7 @@ impl<I: Input, N: Numbering<Token=I::Token>> InputPosition<I, N> {
     }
 }
 
-impl<I: Input, N: Numbering<Token=I::Token>> IntoInner for InputPosition<I, N> {
+impl<I: Input, N: Numbering<Token = I::Token>> IntoInner for InputPosition<I, N> {
     type Inner = (I, N);
 
     fn into_inner(self) -> Self::Inner {
@@ -128,8 +130,8 @@ impl<I: Input, N: Numbering<Token=I::Token>> IntoInner for InputPosition<I, N> {
     }
 }
 
-impl<I: Input, N: Numbering<Token=I::Token>> Input for InputPosition<I, N> {
-    type Token  = I::Token;
+impl<I: Input, N: Numbering<Token = I::Token>> Input for InputPosition<I, N> {
+    type Token = I::Token;
     type Marker = (N, I::Marker);
     type Buffer = I::Buffer;
 
@@ -158,7 +160,9 @@ impl<I: Input, N: Numbering<Token=I::Token>> Input for InputPosition<I, N> {
 
     #[inline]
     fn _consume_while<F>(&mut self, g: Guard, f: F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         let b = self.input._consume_while(g, f);
 
         self.num.update(&b);
@@ -190,27 +194,28 @@ impl<I: Input, N: Numbering<Token=I::Token>> Input for InputPosition<I, N> {
     fn _restore(self, g: Guard, m: Self::Marker) -> Self {
         InputPosition {
             input: self.input._restore(g, m.1),
-            num:   m.0,
+            num: m.0,
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use types::{Input, ParseResult};
     use super::{InputPosition, LineNumber};
-    use primitives::IntoInner;
+    use crate::primitives::IntoInner;
+    use crate::types::{Input, ParseResult};
 
     #[test]
     fn basic_test() {
-        use combinators::many;
-        use parsers::{Error, any, take_while1, string};
+        use crate::combinators::many;
+        use crate::parsers::{any, string, take_while1, Error};
 
         let i = InputPosition::new(&b"test a\ntest b\n\ntest c\n"[..], Default::default());
 
-        fn parser<I: Input<Token=u8>>(i: InputPosition<I, LineNumber>)
-          -> ParseResult<InputPosition<I, LineNumber>, (char, LineNumber), Error<u8>> {
-            parse!{i;
+        fn parser<I: Input<Token = u8>>(
+            i: InputPosition<I, LineNumber>,
+        ) -> ParseResult<InputPosition<I, LineNumber>, (char, LineNumber), Error<u8>> {
+            parse! {i;
                 string(b"test");
                 take_while1(|c| c == b' ' || c == b'\t');
                 let t_name = any();
@@ -224,10 +229,14 @@ mod test {
             }
         }
 
-        assert_eq!(many(i, parser).into_inner().1, Ok(vec![
-                                                      ('a', LineNumber(0)),
-                                                      ('b', LineNumber(1)),
-                                                      // Note the two linebreaks in a row
-                                                      ('c', LineNumber(3))]));
+        assert_eq!(
+            many(i, parser).into_inner().1,
+            Ok(vec![
+                ('a', LineNumber(0)),
+                ('b', LineNumber(1)),
+                // Note the two linebreaks in a row
+                ('c', LineNumber(3))
+            ])
+        );
     }
 }

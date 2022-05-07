@@ -1,20 +1,14 @@
 use std::io;
 
-use types::{Input, ParseResult};
-use primitives::IntoInner;
+use crate::primitives::IntoInner;
+use crate::types::{Input, ParseResult};
 
-use buffer::{
-    Buffer,
-    DataSource,
-    RWDataSource,
-    FixedSizeBuffer,
-    InputBuf,
-    Stream,
-    StreamError,
+use crate::buffer::data_source::{IteratorDataSource, ReadDataSource};
+use crate::buffer::{
+    Buffer, DataSource, FixedSizeBuffer, InputBuf, RWDataSource, Stream, StreamError,
 };
-use buffer::data_source::{IteratorDataSource, ReadDataSource};
 
-bitflags!{
+bitflags! {
     flags ParserState: u64 {
         /// The parser which was last run on the buffer did not manage to complete with the data
         /// available in the buffer.
@@ -31,13 +25,13 @@ bitflags!{
 #[derive(Debug)]
 pub struct Source<S: DataSource, B: Buffer<S::Item>> {
     /// Source reader
-    source:  S,
+    source: S,
     /// Temporary source
-    buffer:  B,
+    buffer: B,
     /// The requested amount of bytes to be available for reading from the buffer
     request: usize,
     /// Input state, if end has been reached
-    state:   ParserState,
+    state: ParserState,
 }
 
 impl<R: io::Read> Source<ReadDataSource<R>, FixedSizeBuffer<u8>> {
@@ -73,7 +67,9 @@ impl<RW: io::Read + io::Write, B: Buffer<u8>> Source<RWDataSource<RW>, B> {
 }
 
 impl<I: Iterator, B: Buffer<I::Item>> Source<IteratorDataSource<I>, B>
-  where I::Item: Copy + PartialEq {
+where
+    I::Item: Copy + PartialEq,
+{
     /// Creates a new `Source` from `Iterator` and `Buffer` instances.
     #[inline]
     pub fn from_iter(source: I, buffer: B) -> Self {
@@ -86,10 +82,10 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
     #[inline]
     pub fn with_buffer(source: S, buffer: B) -> Self {
         Source {
-            source:  source,
-            buffer:  buffer,
+            source,
+            buffer,
             request: 0,
-            state:   INCOMPLETE | AUTOMATIC_FILL,
+            state: INCOMPLETE | AUTOMATIC_FILL,
         }
     }
 
@@ -98,8 +94,8 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
     fn fill_requested(&mut self, request: usize) -> io::Result<usize> {
         let mut read = 0;
 
-        let mut buffer = &mut self.buffer;
-        let     source = &mut self.source;
+        let buffer = &mut self.buffer;
+        let source = &mut self.source;
 
         if buffer.len() < request {
             let diff = request - buffer.len();
@@ -107,7 +103,7 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
             buffer.request_space(diff);
 
             while buffer.len() < request {
-                match try!(buffer.fill(source)) {
+                match r#try!(buffer.fill(source)) {
                     0 => break,
                     n => read += n,
                 }
@@ -183,11 +179,11 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
     }
 }
 
-impl<S: DataSource<Item=u8>, B: Buffer<u8>> io::Read for Source<S, B> {
+impl<S: DataSource<Item = u8>, B: Buffer<u8>> io::Read for Source<S, B> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if buf.len() > self.len() {
-            try!(self.fill_requested(buf.len()));
+            r#try!(self.fill_requested(buf.len()));
         }
 
         (&self.buffer[..]).read(buf).map(|n| {
@@ -198,12 +194,12 @@ impl<S: DataSource<Item=u8>, B: Buffer<u8>> io::Read for Source<S, B> {
     }
 }
 
-impl<S: DataSource<Item=u8>, B: Buffer<u8>> io::BufRead for Source<S, B> {
+impl<S: DataSource<Item = u8>, B: Buffer<u8>> io::BufRead for Source<S, B> {
     #[inline]
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         let cap = self.buffer.capacity();
 
-        try!(self.fill_requested(cap));
+        r#try!(self.fill_requested(cap));
 
         Ok(self.buffer())
     }
@@ -226,18 +222,25 @@ impl<RW: io::Read + io::Write, B: Buffer<u8>> io::Write for Source<RWDataSource<
 }
 
 impl<'a, S: DataSource, B: Buffer<S::Item>> Stream<'a, 'a> for Source<S, B>
-  where S::Item: 'a {
+where
+    S::Item: 'a,
+{
     type Input = InputBuf<'a, S::Item>;
 
     #[inline]
-    fn parse<F, T, E>(&'a mut self, f: F) -> Result<T, StreamError<<Self::Input as Input>::Buffer, E>>
-      where F: FnOnce(Self::Input) -> ParseResult<Self::Input, T, E>,
-            T: 'a,
-            E: 'a {
-        use primitives::Primitives;
+    fn parse<F, T, E>(
+        &'a mut self,
+        f: F,
+    ) -> Result<T, StreamError<<Self::Input as Input>::Buffer, E>>
+    where
+        F: FnOnce(Self::Input) -> ParseResult<Self::Input, T, E>,
+        T: 'a,
+        E: 'a,
+    {
+        use crate::primitives::Primitives;
 
         if self.state.contains(INCOMPLETE | AUTOMATIC_FILL) {
-            try!(self.fill().map_err(StreamError::IoError));
+            r#try!(self.fill().map_err(StreamError::IoError));
         }
 
         if self.is_empty() {
@@ -257,16 +260,16 @@ impl<'a, S: DataSource, B: Buffer<S::Item>> Stream<'a, 'a> for Source<S, B>
 
                     Ok(data)
                 }
-            },
+            }
             (mut remainder, Err(err)) => {
                 match (remainder.is_incomplete(), self.state.contains(END_OF_INPUT)) {
-                    (true, true)  => Err(StreamError::Incomplete),
+                    (true, true) => Err(StreamError::Incomplete),
                     (true, false) => {
                         self.state.insert(INCOMPLETE);
 
                         Err(StreamError::Retry)
-                    },
-                    _             => {
+                    }
+                    _ => {
                         // TODO: Do something neater with the remainder
                         // TODO: Detail this behaviour, maybe make it configurable
                         self.buffer.consume(self.buffer.len() - remainder.len());
@@ -274,7 +277,7 @@ impl<'a, S: DataSource, B: Buffer<S::Item>> Stream<'a, 'a> for Source<S, B>
                         Err(StreamError::ParseError(remainder.consume_remaining(), err))
                     }
                 }
-            },
+            }
         }
     }
 }
@@ -283,24 +286,21 @@ impl<'a, S: DataSource, B: Buffer<S::Item>> Stream<'a, 'a> for Source<S, B>
 mod test {
     use std::io;
 
-    use types::Input;
-    use parsers::{
-        Error,
-        any,
-        take,
-        take_while,
-    };
-    use buffer::{
-        FixedSizeBuffer,
-        StreamError,
-        Stream,
-    };
-    use buffer::data_source::ReadDataSource;
+    use crate::buffer::data_source::ReadDataSource;
+    use crate::buffer::{FixedSizeBuffer, Stream, StreamError};
+    use crate::parsers::{any, take, take_while, Error};
+    use crate::types::Input;
 
     use super::*;
 
-    fn buf(source: &[u8], buffer_length: usize) -> Source<ReadDataSource<io::Cursor<&[u8]>>, FixedSizeBuffer<u8>> {
-        Source::with_buffer(ReadDataSource::new(io::Cursor::new(source)), FixedSizeBuffer::with_size(buffer_length))
+    fn buf(
+        source: &[u8],
+        buffer_length: usize,
+    ) -> Source<ReadDataSource<io::Cursor<&[u8]>>, FixedSizeBuffer<u8>> {
+        Source::with_buffer(
+            ReadDataSource::new(io::Cursor::new(source)),
+            FixedSizeBuffer::with_size(buffer_length),
+        )
     }
 
     #[test]
@@ -337,34 +337,94 @@ mod test {
         let mut m = 0; // Times it has managed to get past the request for data
         let mut b = buf(&b"test"[..], 1);
 
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b't'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b't')
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b'e'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b'e')
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b's'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b's')
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 3);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 6);
         assert_eq!(m, 3);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b't'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b't')
+        );
         assert_eq!(n, 7);
         assert_eq!(m, 4);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 8);
         assert_eq!(m, 4);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 8);
         assert_eq!(m, 4);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 8);
         assert_eq!(m, 4);
     }
@@ -375,28 +435,76 @@ mod test {
         let mut m = 0; // Times it has managed to get past the request for data
         let mut b = buf(&b"test"[..], 2);
 
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b't'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b't')
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b'e'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b'e')
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b's'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b's')
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 3);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b't'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b't')
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 4);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 6);
         assert_eq!(m, 4);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 6);
         assert_eq!(m, 4);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 6);
         assert_eq!(m, 4);
     }
@@ -407,22 +515,58 @@ mod test {
         let mut m = 0; // Times it has managed to get past the request for data
         let mut b = buf(&b"test"[..], 3);
 
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Ok(&b"te"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Ok(&b"te"[..])
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Ok(&b"st"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Ok(&b"st"[..])
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
     }
@@ -433,19 +577,49 @@ mod test {
         let mut m = 0; // Times it has managed to get past the request for data
         let mut b = buf(&b"tes"[..], 2);
 
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Ok(&b"te"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Ok(&b"te"[..])
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Incomplete));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Incomplete)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Incomplete));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Incomplete)
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 1);
     }
@@ -457,27 +631,87 @@ mod test {
         let mut m = 0; // Times it has managed to get past the request for data
         let mut b = buf(&b"tes"[..], 2);
 
-        assert_eq!(b.parse(|i| { n += 1; take_while(i, |_| { o += 1; o < 2 }).inspect(|_| m += 1) }), Ok(&b"t"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take_while(i, |_| {
+                    o += 1;
+                    o < 2
+                })
+                .inspect(|_| m += 1)
+            }),
+            Ok(&b"t"[..])
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 1);
         o = 0;
-        assert_eq!(b.parse(|i| { n += 1; take_while(i, |_| { o += 1; o < 2 }).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take_while(i, |_| {
+                    o += 1;
+                    o < 2
+                })
+                .inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 2);
         o = 0;
-        assert_eq!(b.parse(|i| { n += 1; take_while(i, |_| { o += 1; o < 2 }).inspect(|_| m += 1) }), Ok(&b"e"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take_while(i, |_| {
+                    o += 1;
+                    o < 2
+                })
+                .inspect(|_| m += 1)
+            }),
+            Ok(&b"e"[..])
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 3);
         o = 0;
-        assert_eq!(b.parse(|i| { n += 1; take_while(i, |_| { o += 1; o < 2 }).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take_while(i, |_| {
+                    o += 1;
+                    o < 2
+                })
+                .inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 4);
         o = 0;
-        assert_eq!(b.parse(|i| { n += 1; take_while(i, |_| { o += 1; o < 2 }).inspect(|_| m += 1) }), Ok(&b"s"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take_while(i, |_| {
+                    o += 1;
+                    o < 2
+                })
+                .inspect(|_| m += 1)
+            }),
+            Ok(&b"s"[..])
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 5);
         o = 0;
-        assert_eq!(b.parse(|i| { n += 1; take_while(i, |_| { o += 1; o < 2 }).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take_while(i, |_| {
+                    o += 1;
+                    o < 2
+                })
+                .inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 5);
     }
@@ -490,31 +724,67 @@ mod test {
 
         b.set_autofill(false);
 
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 0);
 
         assert_eq!(b.fill().unwrap(), 2);
 
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Ok(&b"te"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Ok(&b"te"[..])
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 1);
 
         assert_eq!(b.fill().unwrap(), 2);
 
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Ok(&b"st"[..]));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Ok(&b"st"[..])
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 2);
 
         assert_eq!(b.fill().unwrap(), 0);
 
-        assert_eq!(b.parse(|i| { n += 1; take(i, 2).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                take(i, 2).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 5);
         assert_eq!(m, 2);
     }
@@ -529,25 +799,55 @@ mod test {
 
         assert_eq!(b.fill().unwrap(), 1);
 
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b'a'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b'a')
+        );
         assert_eq!(n, 1);
         assert_eq!(m, 1);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 2);
         assert_eq!(m, 1);
 
         assert_eq!(b.fill().unwrap(), 1);
 
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Ok(b'b'));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Ok(b'b')
+        );
         assert_eq!(n, 3);
         assert_eq!(m, 2);
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::Retry));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::Retry)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
 
         assert_eq!(b.fill().unwrap(), 0);
 
-        assert_eq!(b.parse(|i| { n += 1; any(i).inspect(|_| m += 1) }), Err(StreamError::EndOfInput));
+        assert_eq!(
+            b.parse(|i| {
+                n += 1;
+                any(i).inspect(|_| m += 1)
+            }),
+            Err(StreamError::EndOfInput)
+        );
         assert_eq!(n, 4);
         assert_eq!(m, 2);
     }

@@ -17,8 +17,7 @@ pub trait DataSource {
     ///   should be returned (includes EOF).
     ///
     /// * The slice must not be read from, may contain uninitialized memory.
-    #[inline]
-    fn read(&mut self, &mut [Self::Item]) -> io::Result<usize>;
+    fn read(&mut self, _: &mut [Self::Item]) -> io::Result<usize>;
 }
 
 /// Implementation of `DataSource` for `io::Read` instances.
@@ -48,7 +47,6 @@ impl<R: io::Read> DataSource for ReadDataSource<R> {
         self.0.read(buffer)
     }
 }
-
 
 /// Implementation of `DataSource` for streams (e.g. network connections) that you can `Read` and
 /// `Write`. It's really helpful to have the ability to write through the `DataSource` and `Source`
@@ -108,7 +106,9 @@ impl<I: Iterator> IteratorDataSource<I> {
 }
 
 impl<I: Iterator> DataSource for IteratorDataSource<I>
-  where I::Item: Copy + PartialEq {
+where
+    I::Item: Copy + PartialEq,
+{
     type Item = I::Item;
 
     #[inline]

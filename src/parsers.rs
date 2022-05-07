@@ -1,13 +1,9 @@
 //! Basic parsers.
 
-use std::mem;
 
-use types::{
-    Buffer,
-    Input,
-    ParseResult,
-};
-use primitives::Primitives;
+
+use crate::primitives::Primitives;
+use crate::types::{Buffer, Input, ParseResult};
 
 pub use self::error::Error;
 
@@ -16,7 +12,7 @@ pub type SimpleResult<I, T> = ParseResult<I, T, Error<<I as Input>::Token>>;
 
 // Only export if we have backtraces enabled, in debug/test profiles the StackFrame is only used
 // to debug-print.
-#[cfg(feature="backtrace")]
+#[cfg(feature = "backtrace")]
 pub use debugtrace::StackFrame;
 
 /// Matches any item, returning it if present.
@@ -32,7 +28,7 @@ pub use debugtrace::StackFrame;
 pub fn any<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
     match i.pop() {
         Some(c) => i.ret(c),
-        None    => i.err(Error::unexpected()),
+        None => i.err(Error::unexpected()),
     }
 }
 
@@ -48,10 +44,15 @@ pub fn any<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
 /// ```
 #[inline]
 pub fn satisfy<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, I::Token>
-  where F: FnOnce(I::Token) -> bool {
+where
+    F: FnOnce(I::Token) -> bool,
+{
     match i.peek() {
-        Some(c) if f(c) => { i.pop(); i.ret(c) },
-        _               => i.err(Error::unexpected()),
+        Some(c) if f(c) => {
+            i.pop();
+            i.ret(c)
+        }
+        _ => i.err(Error::unexpected()),
     }
 }
 
@@ -71,8 +72,10 @@ pub fn satisfy<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, I::Token>
 /// ```
 #[inline]
 pub fn satisfy_with<I: Input, T: Clone, F, P>(mut i: I, f: F, p: P) -> SimpleResult<I, T>
-  where F: FnOnce(I::Token) -> T,
-        P: FnOnce(T) -> bool {
+where
+    F: FnOnce(I::Token) -> T,
+    P: FnOnce(T) -> bool,
+{
     match i.peek().map(f) {
         Some(c) => {
             if p(c.clone()) {
@@ -82,8 +85,8 @@ pub fn satisfy_with<I: Input, T: Clone, F, P>(mut i: I, f: F, p: P) -> SimpleRes
             } else {
                 i.err(Error::unexpected())
             }
-        },
-        _                           => i.err(Error::unexpected()),
+        }
+        _ => i.err(Error::unexpected()),
     }
 }
 
@@ -99,8 +102,11 @@ pub fn satisfy_with<I: Input, T: Clone, F, P>(mut i: I, f: F, p: P) -> SimpleRes
 #[inline]
 pub fn token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
     match i.peek() {
-        Some(c) if c == t => { i.pop(); i.ret(c) },
-        _                 => i.err(Error::expected(t)),
+        Some(c) if c == t => {
+            i.pop();
+            i.ret(c)
+        }
+        _ => i.err(Error::expected(t)),
     }
 }
 
@@ -116,8 +122,11 @@ pub fn token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
 #[inline]
 pub fn not_token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
     match i.peek() {
-        Some(c) if c != t => { i.pop(); i.ret(c) },
-        _                 => i.err(Error::unexpected()),
+        Some(c) if c != t => {
+            i.pop();
+            i.ret(c)
+        }
+        _ => i.err(Error::unexpected()),
     }
 }
 
@@ -153,7 +162,7 @@ pub fn peek<I: Input>(mut i: I) -> SimpleResult<I, Option<I::Token>> {
 pub fn peek_next<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
     match i.peek() {
         Some(c) => i.ret(c),
-        None    => i.err(Error::unexpected()),
+        None => i.err(Error::unexpected()),
     }
 }
 
@@ -171,7 +180,7 @@ pub fn take<I: Input>(mut i: I, num: usize) -> SimpleResult<I, I::Buffer> {
     match i.consume(num) {
         Some(b) => i.ret(b),
         // TODO: Proper incomplete error here?
-        None    => i.err(Error::unexpected()),
+        None => i.err(Error::unexpected()),
     }
 }
 
@@ -199,7 +208,9 @@ pub fn take<I: Input>(mut i: I, num: usize) -> SimpleResult<I, I::Buffer> {
 /// ```
 #[inline]
 pub fn take_while<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, I::Buffer>
-  where F: FnMut(I::Token) -> bool {
+where
+    F: FnMut(I::Token) -> bool,
+{
     let b = i.consume_while(f);
 
     i.ret(b)
@@ -220,7 +231,9 @@ pub fn take_while<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, I::Buffer>
 /// ```
 #[inline]
 pub fn take_while1<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, I::Buffer>
-  where F: FnMut(I::Token) -> bool {
+where
+    F: FnMut(I::Token) -> bool,
+{
     let b = i.consume_while(f);
 
     if b.is_empty() {
@@ -239,7 +252,9 @@ pub fn take_while1<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, I::Buffer>
 /// ```
 #[inline]
 pub fn skip_while<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, ()>
-  where F: FnMut(I::Token) -> bool {
+where
+    F: FnMut(I::Token) -> bool,
+{
     i.skip_while(f);
 
     i.ret(())
@@ -257,7 +272,9 @@ pub fn skip_while<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, ()>
 /// ```
 #[inline]
 pub fn skip_while1<I: Input, F>(i: I, mut f: F) -> SimpleResult<I, ()>
-  where F: FnMut(I::Token) -> bool {
+where
+    F: FnMut(I::Token) -> bool,
+{
     satisfy(i, &mut f).then(|i| skip_while(i, f))
 }
 
@@ -276,7 +293,9 @@ pub fn skip_while1<I: Input, F>(i: I, mut f: F) -> SimpleResult<I, ()>
 /// ```
 #[inline]
 pub fn take_till<I: Input, F>(mut i: I, mut f: F) -> SimpleResult<I, I::Buffer>
-  where F: FnMut(I::Token) -> bool {
+where
+    F: FnMut(I::Token) -> bool,
+{
     let mut ok = false;
 
     let b = i.consume_while(|c| {
@@ -312,10 +331,20 @@ pub fn take_till<I: Input, F>(mut i: I, mut f: F) -> SimpleResult<I, I::Buffer>
 /// ```
 #[inline]
 pub fn scan<I: Input, S, F>(mut i: I, s: S, mut f: F) -> SimpleResult<I, I::Buffer>
-  where F: FnMut(S, I::Token) -> Option<S> {
+where
+    F: FnMut(S, I::Token) -> Option<S>,
+{
     let mut state = Some(s);
 
-    let b = i.consume_while(|c| { state = f(mem::replace(&mut state, None).expect("scan: Failed to obtain state, consume_while most likely called closure after end"), c); state.is_some() });
+    let b = i.consume_while(|c| {
+        state = f(
+            state.take().expect(
+                "scan: Failed to obtain state, consume_while most likely called closure after end",
+            ),
+            c,
+        );
+        state.is_some()
+    });
 
     i.ret(b)
 }
@@ -334,15 +363,24 @@ pub fn scan<I: Input, S, F>(mut i: I, s: S, mut f: F) -> SimpleResult<I, I::Buff
 /// ```
 #[inline]
 // TODO: Remove Copy bound on S
-pub fn run_scanner<I: Input, S: Copy, F>(mut i: I, s: S, mut f: F) -> SimpleResult<I, (I::Buffer, S)>
-  where F: FnMut(S, I::Token) -> Option<S> {
+pub fn run_scanner<I: Input, S: Copy, F>(
+    mut i: I,
+    s: S,
+    mut f: F,
+) -> SimpleResult<I, (I::Buffer, S)>
+where
+    F: FnMut(S, I::Token) -> Option<S>,
+{
     let mut state = s;
 
     let b = i.consume_while(|c| {
         let t = f(state, c);
         match t {
-            None    => false,
-            Some(v) => { state = v; true }
+            None => false,
+            Some(v) => {
+                state = v;
+                true
+            }
         }
     });
 
@@ -375,17 +413,18 @@ pub fn take_remainder<I: Input>(mut i: I) -> SimpleResult<I, I::Buffer> {
 /// ```
 // TODO: Does not actually work with &str yet
 #[inline]
-pub fn string<T: Copy + PartialEq, I: Input<Token=T>>(mut i: I, s: &[T])
-    -> SimpleResult<I, I::Buffer> {
+pub fn string<T: Copy + PartialEq, I: Input<Token = T>>(
+    mut i: I,
+    s: &[T],
+) -> SimpleResult<I, I::Buffer> {
     let mut n = 0;
-    let len   = s.len();
+    let len = s.len();
 
     // TODO: There has to be some more efficient way here
     let b = i.consume_while(|c| {
         if n >= len || c != s[n] {
             false
-        }
-        else {
+        } else {
             n += 1;
 
             true
@@ -418,25 +457,25 @@ pub fn eof<I: Input>(mut i: I) -> SimpleResult<I, ()> {
 }
 
 mod error {
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     use std::any;
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     use std::error;
     use std::fmt;
 
     use debugtrace::Trace;
 
-    #[cfg(feature="noop_error")]
+    #[cfg(feature = "noop_error")]
     use std::marker::PhantomData;
-    #[cfg(not(feature="noop_error"))]
+    #[cfg(not(feature = "noop_error"))]
     use std::ops::Deref;
 
     /// Empty type to eat the generic without printing
-    #[cfg(feature="noop_error")]
+    #[cfg(feature = "noop_error")]
     #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
     struct Expected<I>(PhantomData<I>);
 
-    #[cfg(feature="noop_error")]
+    #[cfg(feature = "noop_error")]
     impl<I: fmt::Debug> fmt::Debug for Expected<I> {
         fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
             // Intentionally empty
@@ -445,11 +484,11 @@ mod error {
     }
 
     /// `Some(T)` if it expected a specific token, `None` if it encountered something unexpected.
-    #[cfg(not(feature="noop_error"))]
+    #[cfg(not(feature = "noop_error"))]
     #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
     struct Expected<I>(Option<I>);
 
-    #[cfg(not(feature="noop_error"))]
+    #[cfg(not(feature = "noop_error"))]
     impl<I> Deref for Expected<I> {
         type Target = Option<I>;
 
@@ -458,12 +497,12 @@ mod error {
         }
     }
 
-    #[cfg(not(feature="noop_error"))]
+    #[cfg(not(feature = "noop_error"))]
     impl<I: fmt::Debug> fmt::Debug for Expected<I> {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self.0 {
                 Some(ref c) => write!(f, "Expected({:?})", c),
-                None        => write!(f, "Unexpected"),
+                None => write!(f, "Unexpected"),
             }
         }
     }
@@ -478,52 +517,60 @@ mod error {
     #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub struct Error<I>(Trace<Expected<I>>);
 
-    #[cfg(feature="noop_error")]
+    #[cfg(feature = "noop_error")]
     impl<I> fmt::Display for Error<I>
-      where I: fmt::Debug {
+    where
+        I: fmt::Debug,
+    {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "parse error")
         }
     }
 
-    #[cfg(not(feature="noop_error"))]
+    #[cfg(not(feature = "noop_error"))]
     impl<I> fmt::Display for Error<I>
-      where I: fmt::Debug {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    where
+        I: fmt::Debug,
+    {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self.0.as_ref() {
                 Some(c) => write!(f, "expected {:?}", *c),
-                None    => write!(f, "unexpected"),
+                None => write!(f, "unexpected"),
             }
         }
     }
 
-    #[cfg(feature="noop_error")]
-    #[cfg(feature="std")]
+    #[cfg(feature = "noop_error")]
+    #[cfg(feature = "std")]
     impl<I: any::Any + fmt::Debug> error::Error for Error<I> {
         fn description(&self) -> &str {
             &"parse error"
         }
     }
 
-    #[cfg(not(feature="noop_error"))]
-    #[cfg(feature="std")]
+    #[cfg(not(feature = "noop_error"))]
+    #[cfg(feature = "std")]
     impl<I: any::Any + fmt::Debug> error::Error for Error<I> {
         fn description(&self) -> &str {
             match self.0.as_ref() {
                 Some(_) => "expected a certain token, received another",
-                None    => "received an unexpected token",
+                None => "received an unexpected token",
             }
         }
     }
 
-    #[cfg(feature="noop_error")]
+    #[cfg(feature = "noop_error")]
     macro_rules! create_error {
-        ($_e:expr) => { Error(Trace::new(Expected(PhantomData))) }
+        ($_e:expr) => {
+            Error(Trace::new(Expected(PhantomData)))
+        };
     }
 
-    #[cfg(not(feature="noop_error"))]
+    #[cfg(not(feature = "noop_error"))]
     macro_rules! create_error {
-        ($e:expr) => { Error(Trace::new(Expected($e))) }
+        ($e:expr) => {
+            Error(Trace::new(Expected($e)))
+        };
     }
 
     impl<I> Error<I> {
@@ -557,20 +604,20 @@ mod error {
         ///
         /// Will always yield `None` since `noop_error` is enabled.
         #[inline]
-        #[cfg(feature="noop_error")]
+        #[cfg(feature = "noop_error")]
         pub fn expected_token(&self) -> Option<&I> {
             None
         }
 
         /// Returns `Some(&I)` if a specific token was expected, `None` otherwise.
         #[inline]
-        #[cfg(not(feature="noop_error"))]
+        #[cfg(not(feature = "noop_error"))]
         pub fn expected_token(&self) -> Option<&I> {
             self.0.as_ref()
         }
 
         /// Returns a stack-trace to where the error was created.
-        #[cfg(feature="backtrace")]
+        #[cfg(feature = "backtrace")]
         pub fn trace(&self) -> Vec<::debugtrace::StackFrame> {
             self.0.resolve()
         }
@@ -579,132 +626,273 @@ mod error {
 
 #[cfg(test)]
 mod test {
-    use primitives::IntoInner;
     use super::*;
-    use types::{Input, ParseResult};
+    use crate::primitives::IntoInner;
+    use crate::types::{Input, ParseResult};
 
     #[test]
     fn parse_decimal() {
         fn is_digit(c: u8) -> bool {
-            c >= b'0' && c <= b'9'
+            (b'0'..=b'9').contains(&c)
         }
 
-        fn decimal<'i, I: Input<Token=u8, Buffer=&'i [u8]>>(i: I) -> SimpleResult<I, usize> {
-            take_while1(i, is_digit).bind(|i, bytes|
-                i.ret(bytes.iter().fold(0, |a, b| a * 10 + (b - b'0') as usize)))
+        fn decimal<'i, I: Input<Token = u8, Buffer = &'i [u8]>>(i: I) -> SimpleResult<I, usize> {
+            take_while1(i, is_digit)
+                .bind(|i, bytes| i.ret(bytes.iter().fold(0, |a, b| a * 10 + (b - b'0') as usize)))
         }
 
         let i = &b"123.4567 "[..];
 
-        let p = decimal(i).bind(|i, real|
-            token(i, b'.').bind(|i, _|
-                decimal(i).bind(|i, frac|
-                    i.ret((real, frac)))));
+        let p = decimal(i).bind(|i, real| {
+            token(i, b'.').bind(|i, _| decimal(i).bind(|i, frac| i.ret((real, frac))))
+        });
 
         // ParseResult necessary here due to inference, for some reason is
         // `Error<<I as Input>::Token>` not specific enough to actually help inference.
-        let d: ParseResult<_, _, Error<u8>> = p.bind(|i, num| take_remainder(i)
-                                           .bind(|i, r| i.ret((r, num))));
+        let d: ParseResult<_, _, Error<u8>> =
+            p.bind(|i, num| take_remainder(i).bind(|i, r| i.ret((r, num))));
 
         assert_eq!(d.into_inner(), (&b""[..], Ok((&b" "[..], (123, 4567)))));
     }
 
     #[test]
     fn parse_remainder_empty() {
-        assert_eq!(take_remainder(&b""[..]).into_inner(), (&b""[..], Ok(&b""[..])));
+        assert_eq!(
+            take_remainder(&b""[..]).into_inner(),
+            (&b""[..], Ok(&b""[..]))
+        );
     }
 
     #[test]
     fn take_while1_empty() {
-        assert_eq!(take_while1(&b""[..], |_| true).into_inner(), (&b""[..], Err(Error::unexpected())));
+        assert_eq!(
+            take_while1(&b""[..], |_| true).into_inner(),
+            (&b""[..], Err(Error::unexpected()))
+        );
     }
 
     #[test]
     fn token_test() {
-        assert_eq!(token(&b""[..],   b'a').into_inner(), (&b""[..],   Err(Error::expected(b'a'))));
-        assert_eq!(token(&b"ab"[..], b'a').into_inner(), (&b"b"[..],  Ok(b'a')));
-        assert_eq!(token(&b"bb"[..], b'a').into_inner(), (&b"bb"[..], Err(Error::expected(b'a'))));
+        assert_eq!(
+            token(&b""[..], b'a').into_inner(),
+            (&b""[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(token(&b"ab"[..], b'a').into_inner(), (&b"b"[..], Ok(b'a')));
+        assert_eq!(
+            token(&b"bb"[..], b'a').into_inner(),
+            (&b"bb"[..], Err(Error::expected(b'a')))
+        );
     }
 
     #[test]
     fn take_test() {
-        assert_eq!(take(&b""[..],   0).into_inner(), (&b""[..],  Ok(&b""[..])));
-        assert_eq!(take(&b"a"[..],  0).into_inner(), (&b"a"[..], Ok(&b""[..])));
-        assert_eq!(take(&b"a"[..],  1).into_inner(), (&b""[..],  Ok(&b"a"[..])));
-        assert_eq!(take(&b"a"[..],  2).into_inner(), (&b"a"[..], Err(Error::unexpected())));
-        assert_eq!(take(&b"a"[..],  3).into_inner(), (&b"a"[..], Err(Error::unexpected())));
+        assert_eq!(take(&b""[..], 0).into_inner(), (&b""[..], Ok(&b""[..])));
+        assert_eq!(take(&b"a"[..], 0).into_inner(), (&b"a"[..], Ok(&b""[..])));
+        assert_eq!(take(&b"a"[..], 1).into_inner(), (&b""[..], Ok(&b"a"[..])));
+        assert_eq!(
+            take(&b"a"[..], 2).into_inner(),
+            (&b"a"[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            take(&b"a"[..], 3).into_inner(),
+            (&b"a"[..], Err(Error::unexpected()))
+        );
         assert_eq!(take(&b"ab"[..], 1).into_inner(), (&b"b"[..], Ok(&b"a"[..])));
-        assert_eq!(take(&b"ab"[..], 2).into_inner(), (&b""[..],  Ok(&b"ab"[..])));
+        assert_eq!(take(&b"ab"[..], 2).into_inner(), (&b""[..], Ok(&b"ab"[..])));
     }
 
     #[test]
     fn take_while_test() {
-        assert_eq!(take_while(&b""[..],    |c| c != b'b').into_inner(), (&b""[..],    Ok(&b""[..])));
-        assert_eq!(take_while(&b"a"[..],   |c| c != b'b').into_inner(), (&b""[..],    Ok(&b"a"[..])));
-        assert_eq!(take_while(&b"b"[..],   |c| c != b'b').into_inner(), (&b"b"[..],   Ok(&b""[..])));
-        assert_eq!(take_while(&b"abc"[..], |c| c != b'b').into_inner(), (&b"bc"[..],  Ok(&b"a"[..])));
-        assert_eq!(take_while(&b"bbc"[..], |c| c != b'b').into_inner(), (&b"bbc"[..], Ok(&b""[..])));
-        assert_eq!(take_while(&b"bbc"[..], |c| c != b'b').into_inner(), (&b"bbc"[..], Ok(&b""[..])));
-        assert_eq!(take_while(&b"abc"[..], |c| c != b'b').into_inner(), (&b"bc"[..],  Ok(&b"a"[..])));
-        assert_eq!(take_while(&b"acc"[..], |c| c != b'b').into_inner(), (&b""[..],    Ok(&b"acc"[..])));
+        assert_eq!(
+            take_while(&b""[..], |c| c != b'b').into_inner(),
+            (&b""[..], Ok(&b""[..]))
+        );
+        assert_eq!(
+            take_while(&b"a"[..], |c| c != b'b').into_inner(),
+            (&b""[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while(&b"b"[..], |c| c != b'b').into_inner(),
+            (&b"b"[..], Ok(&b""[..]))
+        );
+        assert_eq!(
+            take_while(&b"abc"[..], |c| c != b'b').into_inner(),
+            (&b"bc"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while(&b"bbc"[..], |c| c != b'b').into_inner(),
+            (&b"bbc"[..], Ok(&b""[..]))
+        );
+        assert_eq!(
+            take_while(&b"bbc"[..], |c| c != b'b').into_inner(),
+            (&b"bbc"[..], Ok(&b""[..]))
+        );
+        assert_eq!(
+            take_while(&b"abc"[..], |c| c != b'b').into_inner(),
+            (&b"bc"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while(&b"acc"[..], |c| c != b'b').into_inner(),
+            (&b""[..], Ok(&b"acc"[..]))
+        );
     }
 
     #[test]
     fn take_while1_test() {
-        assert_eq!(take_while1(&b""[..],    |c| c != b'b').into_inner(), (&b""[..],    Err(Error::unexpected())));
-        assert_eq!(take_while1(&b"a"[..],   |c| c != b'b').into_inner(), (&b""[..],    Ok(&b"a"[..])));
-        assert_eq!(take_while1(&b"b"[..],   |c| c != b'b').into_inner(), (&b"b"[..],   Err(Error::unexpected())));
-        assert_eq!(take_while1(&b"ab"[..],  |c| c != b'b').into_inner(), (&b"b"[..],   Ok(&b"a"[..])));
-        assert_eq!(take_while1(&b"abc"[..], |c| c != b'b').into_inner(), (&b"bc"[..],  Ok(&b"a"[..])));
-        assert_eq!(take_while1(&b"bbc"[..], |c| c != b'b').into_inner(), (&b"bbc"[..], Err(Error::unexpected())));
-        assert_eq!(take_while1(&b"bbc"[..], |c| c != b'b').into_inner(), (&b"bbc"[..], Err(Error::unexpected())));
-        assert_eq!(take_while1(&b"abc"[..], |c| c != b'b').into_inner(), (&b"bc"[..],  Ok(&b"a"[..])));
-        assert_eq!(take_while1(&b"acc"[..], |c| c != b'b').into_inner(), (&b""[..],    Ok(&b"acc"[..])));
+        assert_eq!(
+            take_while1(&b""[..], |c| c != b'b').into_inner(),
+            (&b""[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            take_while1(&b"a"[..], |c| c != b'b').into_inner(),
+            (&b""[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while1(&b"b"[..], |c| c != b'b').into_inner(),
+            (&b"b"[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            take_while1(&b"ab"[..], |c| c != b'b').into_inner(),
+            (&b"b"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while1(&b"abc"[..], |c| c != b'b').into_inner(),
+            (&b"bc"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while1(&b"bbc"[..], |c| c != b'b').into_inner(),
+            (&b"bbc"[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            take_while1(&b"bbc"[..], |c| c != b'b').into_inner(),
+            (&b"bbc"[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            take_while1(&b"abc"[..], |c| c != b'b').into_inner(),
+            (&b"bc"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            take_while1(&b"acc"[..], |c| c != b'b').into_inner(),
+            (&b""[..], Ok(&b"acc"[..]))
+        );
     }
 
     #[test]
     fn peek_next_test() {
         assert_eq!(peek_next(&b"abc"[..]).into_inner(), (&b"abc"[..], Ok(b'a')));
         assert_eq!(peek_next(&b"abc"[..]).into_inner(), (&b"abc"[..], Ok(b'a')));
-        assert_eq!(peek_next(&b""[..]).into_inner(),    (&b""[..],    Err(Error::unexpected())));
-        assert_eq!(peek_next(&b""[..]).into_inner(),    (&b""[..],    Err(Error::unexpected())));
+        assert_eq!(
+            peek_next(&b""[..]).into_inner(),
+            (&b""[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            peek_next(&b""[..]).into_inner(),
+            (&b""[..], Err(Error::unexpected()))
+        );
     }
 
     #[test]
     fn satisfy_with_test() {
         let mut m1 = 0;
         let mut n1 = 0;
-        assert_eq!(satisfy_with(&b"abc"[..], |m| { m1 += 1; m % 8 }, |n| { n1 += 1; n == 1 }).into_inner(), (&b"bc"[..], Ok(1)));
+        assert_eq!(
+            satisfy_with(
+                &b"abc"[..],
+                |m| {
+                    m1 += 1;
+                    m % 8
+                },
+                |n| {
+                    n1 += 1;
+                    n == 1
+                }
+            )
+            .into_inner(),
+            (&b"bc"[..], Ok(1))
+        );
         assert_eq!(m1, 1);
         assert_eq!(n1, 1);
 
         let mut m2 = 0;
         let mut n2 = 0;
-        assert_eq!(satisfy_with(&b""[..], |m| { m2 += 1; m % 8 }, |n| { n2 += 1; n == 1 }).into_inner(), (&b""[..], Err(Error::unexpected())));
+        assert_eq!(
+            satisfy_with(
+                &b""[..],
+                |m| {
+                    m2 += 1;
+                    m % 8
+                },
+                |n| {
+                    n2 += 1;
+                    n == 1
+                }
+            )
+            .into_inner(),
+            (&b""[..], Err(Error::unexpected()))
+        );
         assert_eq!(m2, 0);
         assert_eq!(n2, 0);
     }
 
     #[test]
     fn string_test() {
-        assert_eq!(string(&b""[..],    b"").into_inner(),      (&b""[..],    Ok(&b""[..])));
-        assert_eq!(string(&b""[..],    b"a").into_inner(),     (&b""[..],    Err(Error::expected(b'a'))));
-        assert_eq!(string(&b"a"[..],   b"a").into_inner(),     (&b""[..],    Ok(&b"a"[..])));
-        assert_eq!(string(&b"b"[..],   b"a").into_inner(),     (&b"b"[..],   Err(Error::expected(b'a'))));
-        assert_eq!(string(&b"abc"[..], b"a").into_inner(),     (&b"bc"[..],  Ok(&b"a"[..])));
-        assert_eq!(string(&b"abc"[..], b"ab").into_inner(),    (&b"c"[..],   Ok(&b"ab"[..])));
-        assert_eq!(string(&b"abc"[..], b"abc").into_inner(),   (&b""[..],    Ok(&b"abc"[..])));
-        assert_eq!(string(&b"abc"[..], b"abcd").into_inner(),  (&b""[..],    Err(Error::expected(b'd'))));
-        assert_eq!(string(&b"abc"[..], b"abcde").into_inner(), (&b""[..],    Err(Error::expected(b'd'))));
-        assert_eq!(string(&b"abc"[..], b"ac").into_inner(),    (&b"bc"[..],  Err(Error::expected(b'c'))));
+        assert_eq!(string(&b""[..], b"").into_inner(), (&b""[..], Ok(&b""[..])));
+        assert_eq!(
+            string(&b""[..], b"a").into_inner(),
+            (&b""[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(
+            string(&b"a"[..], b"a").into_inner(),
+            (&b""[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            string(&b"b"[..], b"a").into_inner(),
+            (&b"b"[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(
+            string(&b"abc"[..], b"a").into_inner(),
+            (&b"bc"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            string(&b"abc"[..], b"ab").into_inner(),
+            (&b"c"[..], Ok(&b"ab"[..]))
+        );
+        assert_eq!(
+            string(&b"abc"[..], b"abc").into_inner(),
+            (&b""[..], Ok(&b"abc"[..]))
+        );
+        assert_eq!(
+            string(&b"abc"[..], b"abcd").into_inner(),
+            (&b""[..], Err(Error::expected(b'd')))
+        );
+        assert_eq!(
+            string(&b"abc"[..], b"abcde").into_inner(),
+            (&b""[..], Err(Error::expected(b'd')))
+        );
+        assert_eq!(
+            string(&b"abc"[..], b"ac").into_inner(),
+            (&b"bc"[..], Err(Error::expected(b'c')))
+        );
     }
 
     #[test]
     fn skip_while1_test() {
-        assert_eq!(skip_while1(&b"aaabc"[..], |c| c == b'a').into_inner(), (&b"bc"[..], Ok(())));
-        assert_eq!(skip_while1(&b"aabc"[..], |c| c == b'a').into_inner(), (&b"bc"[..], Ok(())));
-        assert_eq!(skip_while1(&b"abc"[..], |c| c == b'a').into_inner(), (&b"bc"[..], Ok(())));
-        assert_eq!(skip_while1(&b"bc"[..], |c| c == b'a').into_inner(), (&b"bc"[..], Err(Error::unexpected())));
+        assert_eq!(
+            skip_while1(&b"aaabc"[..], |c| c == b'a').into_inner(),
+            (&b"bc"[..], Ok(()))
+        );
+        assert_eq!(
+            skip_while1(&b"aabc"[..], |c| c == b'a').into_inner(),
+            (&b"bc"[..], Ok(()))
+        );
+        assert_eq!(
+            skip_while1(&b"abc"[..], |c| c == b'a').into_inner(),
+            (&b"bc"[..], Ok(()))
+        );
+        assert_eq!(
+            skip_while1(&b"bc"[..], |c| c == b'a').into_inner(),
+            (&b"bc"[..], Err(Error::unexpected()))
+        );
     }
 
     #[test]
@@ -730,13 +918,20 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature="backtrace")]
+    #[cfg(feature = "backtrace")]
     fn backtrace_test() {
         let e = Error::<()>::new();
 
         let trace = e.trace();
-        let this  = &trace[0];
+        let this = &trace[0];
 
-        assert!(this.name.as_ref().map(|n| n.contains("parsers::test::backtrace_test")).unwrap_or(false), "Expected trace to contain \"parsers::test::backtrace_test\", got: {:?}", this.name.as_ref());
+        assert!(
+            this.name
+                .as_ref()
+                .map(|n| n.contains("parsers::test::backtrace_test"))
+                .unwrap_or(false),
+            "Expected trace to contain \"parsers::test::backtrace_test\", got: {:?}",
+            this.name.as_ref()
+        );
     }
 }

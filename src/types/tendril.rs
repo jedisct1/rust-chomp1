@@ -3,13 +3,13 @@
 
 use std::mem;
 
-use tendril::ByteTendril;
 use primitives::Guard;
+use tendril::ByteTendril;
 use types::{Buffer, Input};
 
 // TODO: Impl for more than byte tendril
 impl Input for ByteTendril {
-    type Token  = u8;
+    type Token = u8;
     type Marker = ByteTendril;
     type Buffer = ByteTendril;
 
@@ -46,7 +46,9 @@ impl Input for ByteTendril {
 
     #[inline]
     fn _consume_while<F>(&mut self, g: Guard, mut f: F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         match self.iter().position(|c| !f(*c)) {
             Some(n) => {
                 let b = self.subtendril(0, n as u32);
@@ -54,8 +56,8 @@ impl Input for ByteTendril {
                 self.pop_front(n as u32);
 
                 b
-            },
-            None    => self._consume_remaining(g),
+            }
+            None => self._consume_remaining(g),
         }
     }
 
@@ -87,12 +89,16 @@ impl Buffer for ByteTendril {
     type Token = u8;
 
     fn fold<B, F>(self, init: B, f: F) -> B
-      where F: FnMut(B, Self::Token) -> B {
+    where
+        F: FnMut(B, Self::Token) -> B,
+    {
         (&self[..]).iter().cloned().fold(init, f)
     }
 
     fn iterate<F>(&self, mut f: F)
-      where F: FnMut(Self::Token) {
+    where
+        F: FnMut(Self::Token),
+    {
         for i in (&self[..]).iter().cloned() {
             f(i)
         }
@@ -102,12 +108,12 @@ impl Buffer for ByteTendril {
         self.len32() as usize
     }
 
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token> {
         (&self[..]).iter().cloned().collect()
     }
 
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn into_vec(self) -> Vec<Self::Token> {
         (&self[..]).iter().cloned().collect()
     }
@@ -122,7 +128,10 @@ mod test {
         use ascii::decimal;
         use primitives::IntoInner;
 
-        assert_eq!(decimal(Tendril::from_slice(&b"123"[..])).into_inner(), (Tendril::from_slice(&b""[..]), Ok(123i32)));
+        assert_eq!(
+            decimal(Tendril::from_slice(&b"123"[..])).into_inner(),
+            (Tendril::from_slice(&b""[..]), Ok(123i32))
+        );
     }
 
     #[test]

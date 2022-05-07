@@ -4,7 +4,7 @@ pub mod numbering;
 #[cfg(feature = "tendril")]
 pub mod tendril;
 
-use primitives::{Guard, IntoInner};
+use crate::primitives::{Guard, IntoInner};
 
 /// The buffers yielded parsers consuming a sequence of the input.
 ///
@@ -23,27 +23,29 @@ pub trait Buffer: PartialEq<Self> {
     // instantiate the type in a function signature with a concrete lifetime without running into
     // an "expected bound lifetime but found concrete lifetime" error. Instantiation for HRTBs seem
     // to only take place in the actual code, not when a type is used in eg. a where clause.
-    fn fold<B, F>(self, B, F) -> B
-      where F: FnMut(B, Self::Token) -> B;
+    fn fold<B, F>(self, _: B, _: F) -> B
+    where
+        F: FnMut(B, Self::Token) -> B;
 
     /// Runs the supplied function on a borrow of each token present in the buffer. Invoked in
     /// order and once per token.
     // Same reason for above for not returning an iterator.
-    fn iterate<F>(&self, F)
-      where F: FnMut(Self::Token);
+    fn iterate<F>(&self, _: F)
+    where
+        F: FnMut(Self::Token);
 
     /// The number of tokens present in this buffer.
     fn len(&self) -> usize;
 
     /// Copies all the tokens in this buffer to a new `Vec`.
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token>;
 
     /// Consumes self to create an owned vector of tokens.
     ///
     /// Will allocate if the implementation borrows storage or does not use an owned type
     /// compatible with `Vec` internally.
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn into_vec(self) -> Vec<Self::Token>;
 
     /// Returns true if this buffer is empty.
@@ -56,12 +58,16 @@ impl<'a, I: Copy + PartialEq> Buffer for &'a [I] {
     type Token = I;
 
     fn fold<B, F>(self, init: B, f: F) -> B
-      where F: FnMut(B, Self::Token) -> B {
-        (&self[..]).iter().cloned().fold(init, f)
+    where
+        F: FnMut(B, Self::Token) -> B,
+    {
+        self.iter().cloned().fold(init, f)
     }
 
     fn iterate<F>(&self, mut f: F)
-      where F: FnMut(Self::Token) {
+    where
+        F: FnMut(Self::Token),
+    {
         for c in (&self[..]).iter().cloned() {
             f(c)
         }
@@ -72,14 +78,14 @@ impl<'a, I: Copy + PartialEq> Buffer for &'a [I] {
         (&self[..]).len()
     }
 
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token> {
         (&self[..]).to_vec()
     }
 
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn into_vec(self) -> Vec<Self::Token> {
-        (&self[..]).to_vec()
+        self.to_vec()
     }
 }
 
@@ -87,12 +93,16 @@ impl<'a> Buffer for &'a str {
     type Token = char;
 
     fn fold<B, F>(self, init: B, f: F) -> B
-      where F: FnMut(B, Self::Token) -> B {
+    where
+        F: FnMut(B, Self::Token) -> B,
+    {
         self.chars().fold(init, f)
     }
 
     fn iterate<F>(&self, mut f: F)
-      where F: FnMut(Self::Token) {
+    where
+        F: FnMut(Self::Token),
+    {
         for c in self.chars() {
             f(c)
         }
@@ -106,14 +116,14 @@ impl<'a> Buffer for &'a str {
         (&self[..]).is_empty()
     }
 
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token> {
         (&self[..]).chars().collect()
     }
 
-    #[cfg(feature="std")]
+    #[cfg(feature = "std")]
     fn into_vec(self) -> Vec<Self::Token> {
-        (&self[..]).chars().collect()
+        self.chars().collect()
     }
 }
 
@@ -143,7 +153,7 @@ pub trait Input: Sized {
     /// The buffer type yielded by this input when multiple tokens are consumed in sequence.
     ///
     /// Can eg. provide zero-copy parsing if the input type is built to support it.
-    type Buffer: Buffer<Token=Self::Token>;
+    type Buffer: Buffer<Token = Self::Token>;
 
     /// Returns `t` as a success value in the parsing context.
     ///
@@ -215,57 +225,52 @@ pub trait Input: Sized {
     // Primitive methods
 
     /// **Primitive:** See `Primitives::peek` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _peek(&mut self, Guard) -> Option<Self::Token>;
+    fn _peek(&mut self, _: Guard) -> Option<Self::Token>;
 
     /// **Primitive:** See `Primitives::pop` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _pop(&mut self, Guard) -> Option<Self::Token>;
+    fn _pop(&mut self, _: Guard) -> Option<Self::Token>;
 
     /// **Primitive:** See `Primitives::consume` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _consume(&mut self, Guard, usize) -> Option<Self::Buffer>;
+    fn _consume(&mut self, _: Guard, _: usize) -> Option<Self::Buffer>;
 
     /// **Primitive:** See `Primitives::consume_while` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _consume_while<F>(&mut self, Guard, F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool;
+    fn _consume_while<F>(&mut self, _: Guard, _: F) -> Self::Buffer
+    where
+        F: FnMut(Self::Token) -> bool;
 
     /// **Primitive:** See `Primitives::consume_from for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _consume_from(&mut self, Guard, Self::Marker) -> Self::Buffer;
+    fn _consume_from(&mut self, _: Guard, _: Self::Marker) -> Self::Buffer;
 
     /// **Primitive:** See `Primitives::consume_remaining` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _consume_remaining(&mut self, Guard) -> Self::Buffer;
+    fn _consume_remaining(&mut self, _: Guard) -> Self::Buffer;
 
     /// **Primitive:** See `Primitives::skip_while` for documentation.
     #[inline]
     #[doc(hidden)]
     fn _skip_while<F>(&mut self, g: Guard, f: F)
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         self._consume_while(g, f);
     }
 
     /// **Primitive:** See `Primitives::mark` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _mark(&self, Guard) -> Self::Marker;
+    fn _mark(&self, _: Guard) -> Self::Marker;
 
     /// **Primitive:** See `Primitives::restore` for documentation.
-    #[inline]
     #[doc(hidden)]
-    fn _restore(self, Guard, Self::Marker) -> Self;
+    fn _restore(self, _: Guard, _: Self::Marker) -> Self;
 }
 
 impl<'a, I: Copy + PartialEq> Input for &'a [I] {
-    type Token  = I;
+    type Token = I;
     type Marker = &'a [I];
     type Buffer = &'a [I];
 
@@ -298,14 +303,16 @@ impl<'a, I: Copy + PartialEq> Input for &'a [I] {
 
     #[inline]
     fn _consume_while<F>(&mut self, g: Guard, mut f: F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         if let Some(n) = self.iter().position(|c| !f(*c)) {
             let b = &self[..n];
 
             *self = &self[n..];
 
             b
-        }  else {
+        } else {
             self._consume_remaining(g)
         }
     }
@@ -336,7 +343,7 @@ impl<'a, I: Copy + PartialEq> Input for &'a [I] {
 }
 
 impl<'a> Input for &'a str {
-    type Token  = char;
+    type Token = char;
     type Marker = &'a str;
     type Buffer = &'a str;
 
@@ -352,7 +359,7 @@ impl<'a> Input for &'a str {
         iter.next().map(|(_, c)| {
             match iter.next().map(|(p, _)| p) {
                 Some(n) => *self = &self[n..],
-                None    => *self = &self[self.len()..],
+                None => *self = &self[self.len()..],
             }
 
             c
@@ -369,18 +376,18 @@ impl<'a> Input for &'a str {
                 *self = &self[pos..];
 
                 Some(b)
-            },
+            }
             // num always equal to n - 1 if self contains exactly n characters
-            Some((num, _)) if n == num + 1 => {
-                Some(self._consume_remaining(g))
-            },
+            Some((num, _)) if n == num + 1 => Some(self._consume_remaining(g)),
             _ => None,
         }
     }
 
     #[inline]
     fn _consume_while<F>(&mut self, g: Guard, mut f: F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         // We need to find the character following the one which did not match
         if let Some((pos, _)) = self.char_indices().skip_while(|&(_, c)| f(c)).next() {
             let b = &self[..pos];
@@ -419,10 +426,9 @@ impl<'a> Input for &'a str {
 }
 
 /// A type alias for an `Input` with a token type of `u8`.
-pub trait U8Input: Input<Token=u8> {}
+pub trait U8Input: Input<Token = u8> {}
 
-impl<T> U8Input for T
-  where T: Input<Token=u8> {}
+impl<T> U8Input for T where T: Input<Token = u8> {}
 
 /// The basic return type of a parser.
 ///
@@ -503,10 +509,12 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// ```
     #[inline]
     pub fn bind<F, U, V>(self, f: F) -> ParseResult<I, U, V>
-      where F: FnOnce(I, T) -> ParseResult<I, U, V>,
-            V: From<E> {
+    where
+        F: FnOnce(I, T) -> ParseResult<I, U, V>,
+        V: From<E>,
+    {
         match self.1 {
-            Ok(t)  => f(self.0, t).map_err(From::from),
+            Ok(t) => f(self.0, t).map_err(From::from),
             Err(e) => ParseResult(self.0, Err(From::from(e))),
         }
     }
@@ -539,8 +547,10 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// ```
     #[inline]
     pub fn then<F, U, V>(self, f: F) -> ParseResult<I, U, V>
-      where F: FnOnce(I) -> ParseResult<I, U, V>,
-            V: From<E> {
+    where
+        F: FnOnce(I) -> ParseResult<I, U, V>,
+        V: From<E>,
+    {
         self.bind(|i, _| f(i))
     }
 
@@ -557,9 +567,11 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// ```
     #[inline]
     pub fn map<U, F>(self, f: F) -> ParseResult<I, U, E>
-      where F: FnOnce(T) -> U {
+    where
+        F: FnOnce(T) -> U,
+    {
         match self {
-            ParseResult(i, Ok(t))  => ParseResult(i, Ok(f(t))),
+            ParseResult(i, Ok(t)) => ParseResult(i, Ok(f(t))),
             ParseResult(i, Err(e)) => ParseResult(i, Err(e)),
         }
     }
@@ -579,9 +591,11 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// ```
     #[inline]
     pub fn map_err<V, F>(self, f: F) -> ParseResult<I, T, V>
-      where F: FnOnce(E) -> V {
+    where
+        F: FnOnce(E) -> V,
+    {
         match self {
-            ParseResult(i, Ok(t))  => ParseResult(i, Ok(t)),
+            ParseResult(i, Ok(t)) => ParseResult(i, Ok(t)),
             ParseResult(i, Err(e)) => ParseResult(i, Err(f(e))),
         }
     }
@@ -602,9 +616,11 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// ```
     #[inline]
     pub fn inspect<F>(self, f: F) -> ParseResult<I, T, E>
-      where F: FnOnce(&T) {
+    where
+        F: FnOnce(&T),
+    {
         if let Ok(ref t) = self.1 {
-             f(t)
+            f(t)
         }
 
         self
@@ -636,12 +652,12 @@ impl<I: Input, T, E> IntoInner for ParseResult<I, T, E> {
 #[cfg(test)]
 pub mod test {
     use super::{Buffer, Input, ParseResult};
-    use primitives::IntoInner;
+    use crate::primitives::IntoInner;
     use std::fmt::Debug;
 
     #[test]
     fn ret() {
-        let r1: ParseResult<_, u32, ()>   = b"in1".ret::<_, ()>(23u32);
+        let r1: ParseResult<_, u32, ()> = b"in1".ret::<_, ()>(23u32);
         let r2: ParseResult<_, i32, &str> = b"in2".ret::<_, &str>(23i32);
 
         assert_eq!(r1.into_inner(), (&b"in1"[..], Ok(23u32)));
@@ -650,7 +666,7 @@ pub mod test {
 
     #[test]
     fn err() {
-        let r1: ParseResult<_, (), u32>   = b"in1".err::<(), _>(23u32);
+        let r1: ParseResult<_, (), u32> = b"in1".err::<(), _>(23u32);
         let r2: ParseResult<_, &str, i32> = b"in2".err::<&str, _>(23i32);
 
         assert_eq!(r1.into_inner(), (&b"in1"[..], Err(23u32)));
@@ -700,7 +716,7 @@ pub mod test {
 
     #[test]
     fn monad_associativity() {
-         fn f<I: Input>(i: I, num: u32) -> ParseResult<I, u64, ()> {
+        fn f<I: Input>(i: I, num: u32) -> ParseResult<I, u64, ()> {
             i.ret((num + 1) as u64)
         }
 
@@ -722,12 +738,12 @@ pub mod test {
 
     #[test]
     fn parse_result_inspect() {
-        use primitives::IntoInner;
+        use crate::primitives::IntoInner;
 
         let mut n1 = 0;
         let mut n2 = 0;
-        let i1     = b"test ".ret::<u32, ()>(23);
-        let i2     = b"test ".ret::<u32, ()>(23);
+        let i1 = b"test ".ret::<u32, ()>(23);
+        let i2 = b"test ".ret::<u32, ()>(23);
 
         let r1 = i1.inspect(|d: &u32| {
             assert_eq!(d, &23);
@@ -755,7 +771,10 @@ pub mod test {
         assert_eq!(i.0, b"test1");
         assert_eq!(i.1, Ok(23));
 
-        let r: ParseResult<_, _, ()> = i.bind(|i, t| { n_calls += 1; i.ret(t) });
+        let r: ParseResult<_, _, ()> = i.bind(|i, t| {
+            n_calls += 1;
+            i.ret(t)
+        });
 
         assert_eq!((r.0, r.1), (&b"test1"[..], Ok(23)));
         assert_eq!(n_calls, 1);
@@ -770,7 +789,10 @@ pub mod test {
         assert_eq!(i.0, b"test1");
         assert_eq!(i.1, Err(23));
 
-        let r = i.bind(|i, t| { n_calls += 1; i.ret(t) });
+        let r = i.bind(|i, t| {
+            n_calls += 1;
+            i.ret(t)
+        });
 
         assert_eq!((r.0, r.1), (&b"test1"[..], Err(23)));
         assert_eq!(n_calls, 0);
@@ -778,7 +800,9 @@ pub mod test {
 
     #[test]
     fn slice() {
-        fn f<I: Input>(i: I, n: u32) -> ParseResult<I, u32, ()> { i.ret(n + 1) }
+        fn f<I: Input>(i: I, n: u32) -> ParseResult<I, u32, ()> {
+            i.ret(n + 1)
+        }
 
         let lhs = (&b"test"[..]).ret(123).bind(f);
         let rhs = f(&b"test"[..], 123);
@@ -789,7 +813,7 @@ pub mod test {
 
     #[test]
     fn test_consuming_whole_slice_does_not_reset_the_pointer() {
-        use primitives::Primitives;
+        use crate::primitives::Primitives;
 
         let slice: &[u8] = b"abc";
         let mut b = slice;
@@ -813,7 +837,7 @@ pub mod test {
 
     #[test]
     fn test_consuming_whole_str_does_not_reset_the_pointer() {
-        use primitives::Primitives;
+        use crate::primitives::Primitives;
 
         let slice: &str = "abc";
         let mut b = slice;
@@ -842,55 +866,70 @@ pub mod test {
 
     #[test]
     fn test_string() {
-        run_primitives_test(&"abc"[..], |c| c as char);
+        run_primitives_test("abc", |c| c as char);
     }
 
     /// Should recieve an Input with the tokens 'a', 'b' and 'c' remaining.
     pub fn run_primitives_test<I: Input, F: Fn(u8) -> I::Token>(mut s: I, f: F)
-      where I::Token:  Debug,
-            I::Buffer: Clone {
-        use primitives::Primitives;
+    where
+        I::Token: Debug,
+        I::Buffer: Clone,
+    {
+        use crate::primitives::Primitives;
 
         fn buffer_eq_slice<B: Buffer + Clone, F: Fn(u8) -> B::Token>(b: B, s: &[u8], f: F)
-          where B::Token: Debug {
+        where
+            B::Token: Debug,
+        {
             assert_eq!(b.len(), s.len());
             assert_eq!(b.is_empty(), s.is_empty());
-            assert_eq!(b.clone().fold(0, |n, c| {
-                assert_eq!(c, f(s[n]));
+            assert_eq!(
+                b.clone().fold(0, |n, c| {
+                    assert_eq!(c, f(s[n]));
 
-                n + 1
-            }), s.iter().count());
+                    n + 1
+                }),
+                s.len()
+            );
             buffer_to_vec(b, s, f);
         }
 
-        #[cfg(feature="std")]
+        #[cfg(feature = "std")]
         fn buffer_to_vec<B: Buffer + Clone, F: Fn(u8) -> B::Token>(b: B, s: &[u8], f: F)
-          where B::Token: Debug {
+        where
+            B::Token: Debug,
+        {
             assert_eq!(b.to_vec(), s.iter().cloned().map(f).collect::<Vec<_>>());
         }
 
-        #[cfg(not(feature="std"))]
+        #[cfg(not(feature = "std"))]
         fn buffer_to_vec<B: Buffer + Clone, F: Fn(u8) -> B::Token>(_: B, _: &[u8], _: F)
-          where B::Token: Debug {}
+        where
+            B::Token: Debug,
+        {
+        }
 
         let m = s.mark();
         assert_eq!(s.peek(), Some(f(b'a')));
-        assert_eq!(s.pop(),  Some(f(b'a')));
+        assert_eq!(s.pop(), Some(f(b'a')));
         assert_eq!(s.peek(), Some(f(b'b')));
-        assert_eq!(s.pop(),  Some(f(b'b')));
+        assert_eq!(s.pop(), Some(f(b'b')));
         assert_eq!(s.peek(), Some(f(b'c')));
-        assert_eq!(s.pop(),  Some(f(b'c')));
+        assert_eq!(s.pop(), Some(f(b'c')));
         assert_eq!(s.peek(), None);
-        assert_eq!(s.pop(),  None);
+        assert_eq!(s.pop(), None);
         assert_eq!(s.peek(), None);
-        assert_eq!(s.pop(),  None);
+        assert_eq!(s.pop(), None);
         assert!(s.consume(1).is_none());
         buffer_eq_slice(s.consume_remaining(), &b""[..], &f);
 
         {
             let mut n = 0;
 
-            let b = s.consume_while(|_| { n += 1; true });
+            let b = s.consume_while(|_| {
+                n += 1;
+                true
+            });
 
             assert_eq!(n, 0);
             buffer_eq_slice(b, &b""[..], &f);
@@ -942,8 +981,7 @@ pub mod test {
             assert_eq!(v, [f(b'a'), f(b'b'), f(b'c')]);
             assert_eq!(b.len(), 3);
             assert_eq!(b.is_empty(), false);
-        }
-        else {
+        } else {
             panic!("s.consume(3) failed");
         }
 
@@ -968,9 +1006,9 @@ pub mod test {
         }
 
         assert_eq!(s.peek(), Some(f(b'c')));
-        assert_eq!(s.pop(),  Some(f(b'c')));
+        assert_eq!(s.pop(), Some(f(b'c')));
         assert_eq!(s.peek(), None);
-        assert_eq!(s.pop(),  None);
+        assert_eq!(s.pop(), None);
 
         buffer_eq_slice(s.consume_from(m), &b"abc"[..], &f);
     }

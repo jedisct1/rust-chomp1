@@ -4,7 +4,7 @@
 //! methods are hidden in the documentation to make it easier to read the documentation since the
 //! methods are not useful when using the library or writing primitive parsers.
 
-use types::Input;
+use crate::types::Input;
 
 /// Consumes self and reveals the inner state.
 ///
@@ -20,7 +20,6 @@ pub trait IntoInner {
     /// # Primitive
     ///
     /// Only used by fundamental parsers and combinators.
-    #[inline(always)]
     fn into_inner(self) -> Self::Inner;
 }
 
@@ -75,7 +74,9 @@ pub trait Primitives: Input {
     /// not contain any more data.
     #[inline(always)]
     fn consume_while<F>(&mut self, f: F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         self._consume_while(Guard(()), f)
     }
 
@@ -106,7 +107,9 @@ pub trait Primitives: Input {
     /// optimize away the resulting `Self::Buffer`.
     #[inline(always)]
     fn skip_while<F>(&mut self, f: F)
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         self._skip_while(Guard(()), f)
     }
 

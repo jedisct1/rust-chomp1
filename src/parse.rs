@@ -1,13 +1,12 @@
-use types::{Input, ParseResult};
-use primitives::{
-    IntoInner,
-    Primitives,
-};
+use crate::primitives::{IntoInner, Primitives};
+use crate::types::{Input, ParseResult};
 
 /// Runs the supplied parser over the input.
 pub fn run_parser<I, F, T, E>(input: I, parser: F) -> (I, Result<T, E>)
-  where I: Input,
-        F: FnOnce(I) -> ParseResult<I, T, E> {
+where
+    I: Input,
+    F: FnOnce(I) -> ParseResult<I, T, E>,
+{
     parser(input).into_inner()
 }
 
@@ -47,70 +46,98 @@ pub fn run_parser<I, F, T, E>(input: I, parser: F) -> (I, Result<T, E>)
 /// # }
 /// ```
 pub fn parse_only<'a, I, T, E, F>(parser: F, input: &'a [I]) -> Result<T, (&'a [I], E)>
-  where I: Copy + PartialEq,
-        F: FnOnce(&'a [I]) -> ParseResult<&'a [I], T, E> {
+where
+    I: Copy + PartialEq,
+    F: FnOnce(&'a [I]) -> ParseResult<&'a [I], T, E>,
+{
     match parser(input).into_inner() {
-        (_, Ok(t))      => Ok(t),
+        (_, Ok(t)) => Ok(t),
         (mut b, Err(e)) => Err((b.consume_remaining(), e)),
     }
 }
 
 /// Runs the given parser on the supplied string.
 pub fn parse_only_str<'a, T, E, F>(parser: F, input: &'a str) -> Result<T, (&'a str, E)>
-  where F: FnOnce(&'a str) -> ParseResult<&'a str, T, E> {
+where
+    F: FnOnce(&'a str) -> ParseResult<&'a str, T, E>,
+{
     match parser(input).into_inner() {
-        (_, Ok(t))      => Ok(t),
+        (_, Ok(t)) => Ok(t),
         (mut b, Err(e)) => Err((b.consume_remaining(), e)),
     }
 }
 
 #[cfg(test)]
 mod test {
-    use types::Input;
-    use primitives::Primitives;
     use super::*;
+    use crate::primitives::Primitives;
+    use crate::types::Input;
 
     #[test]
     fn inspect_input() {
         let mut input = None;
 
-        assert_eq!(parse_only(|i| {
-            input = Some(i.iter().cloned().collect());
+        assert_eq!(
+            parse_only(
+                |i| {
+                    input = Some(i.to_vec());
 
-            i.ret::<_, ()>("the result")
-        }, b"the input"), Ok("the result"));
+                    i.ret::<_, ()>("the result")
+                },
+                b"the input"
+            ),
+            Ok("the result")
+        );
 
         assert_eq!(input, Some(b"the input".to_vec()));
     }
 
     #[test]
     fn err() {
-        assert_eq!(parse_only(|mut i| {
-            i.consume(4);
+        assert_eq!(
+            parse_only(
+                |mut i| {
+                    i.consume(4);
 
-            i.err::<(), _>("my error")
-        }, b"the input"), Err((&b"input"[..], "my error")));
+                    i.err::<(), _>("my error")
+                },
+                b"the input"
+            ),
+            Err((&b"input"[..], "my error"))
+        );
     }
 
     #[test]
     fn inspect_input_str() {
         let mut input = None;
 
-        assert_eq!(parse_only_str(|i| {
-            input = Some(i.to_owned());
+        assert_eq!(
+            parse_only_str(
+                |i| {
+                    input = Some(i.to_owned());
 
-            i.ret::<_, ()>("the result")
-        }, "the input"), Ok("the result"));
+                    i.ret::<_, ()>("the result")
+                },
+                "the input"
+            ),
+            Ok("the result")
+        );
 
         assert_eq!(input, Some("the input".to_owned()));
     }
 
     #[test]
     fn err_str() {
-        assert_eq!(parse_only_str(|mut i| {
-            i.consume(4);
+        assert_eq!(
+            parse_only_str(
+                |mut i| {
+                    i.consume(4);
 
-            i.err::<(), _>("my error")
-        }, "the input"), Err(("input", "my error")));
+                    i.err::<(), _>("my error")
+                },
+                "the input"
+            ),
+            Err(("input", "my error"))
+        );
     }
 }

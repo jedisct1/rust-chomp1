@@ -1,7 +1,7 @@
-use primitives::IntoInner;
+use crate::primitives::IntoInner;
 
-use types::{Input, ParseResult};
-use buffer::{InputBuf, StreamError, Stream};
+use crate::buffer::{InputBuf, Stream, StreamError};
+use crate::types::{Input, ParseResult};
 
 /// Stream implementation for immutable slices.
 ///
@@ -35,8 +35,8 @@ use buffer::{InputBuf, StreamError, Stream};
 /// # }
 /// ```
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct SliceStream<'i, I: 'i> {
-    pos:   usize,
+pub struct SliceStream<'i, I> {
+    pos: usize,
     slice: &'i [I],
 }
 
@@ -45,8 +45,8 @@ impl<'i, I: 'i> SliceStream<'i, I> {
     #[inline]
     pub fn new(slice: &'i [I]) -> Self {
         SliceStream {
-            pos:   0,
-            slice: slice,
+            pos: 0,
+            slice,
         }
     }
 
@@ -67,11 +67,16 @@ impl<'a, 'i, I: 'i + Copy + PartialEq> Stream<'a, 'i> for SliceStream<'i, I> {
     type Input = InputBuf<'i, I>;
 
     #[inline]
-    fn parse<F, T, E>(&'a mut self, f: F) -> Result<T, StreamError<<Self::Input as Input>::Buffer, E>>
-      where F: FnOnce(Self::Input) -> ParseResult<Self::Input, T, E>,
-            T: 'i,
-            E: 'i {
-        use primitives::Primitives;
+    fn parse<F, T, E>(
+        &'a mut self,
+        f: F,
+    ) -> Result<T, StreamError<<Self::Input as Input>::Buffer, E>>
+    where
+        F: FnOnce(Self::Input) -> ParseResult<Self::Input, T, E>,
+        T: 'i,
+        E: 'i,
+    {
+        use crate::primitives::Primitives;
 
         if self.is_empty() {
             return Err(StreamError::EndOfInput);
@@ -83,7 +88,7 @@ impl<'a, 'i, I: 'i + Copy + PartialEq> Stream<'a, 'i> for SliceStream<'i, I> {
                 self.pos += self.len() - remainder.len();
 
                 Ok(data)
-            },
+            }
             (mut remainder, Err(err)) => {
                 if remainder.is_incomplete() {
                     Err(StreamError::Incomplete)
@@ -96,7 +101,7 @@ impl<'a, 'i, I: 'i + Copy + PartialEq> Stream<'a, 'i> for SliceStream<'i, I> {
 
                     Err(StreamError::ParseError(remainder.consume_remaining(), err))
                 }
-            },
+            }
         }
     }
 }

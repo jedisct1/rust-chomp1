@@ -180,8 +180,8 @@
 //! # Features
 //!
 //! * `backtrace`:
-#![cfg_attr(feature="backtrace", doc = " enabled.")]
-#![cfg_attr(not(feature="backtrace"), doc = " disabled (default).")]
+#![cfg_attr(feature = "backtrace", doc = " enabled.")]
+#![cfg_attr(not(feature = "backtrace"), doc = " disabled (default).")]
 //!
 //!    This feature enables backtraces for parse-errors, either by calling `Error::trace` or by
 //!    printing it using `fmt::Debug`.
@@ -193,15 +193,15 @@
 //!    cost when built using the `release` profile unless the `backtrace` feature is enabled.
 //!
 //! * `noop_error`:
-#![cfg_attr(not(feature="noop_error"), doc = " disabled (default).")]
-#![cfg_attr(feature="noop_error", doc = " enabled.")]
+#![cfg_attr(not(feature = "noop_error"), doc = " disabled (default).")]
+#![cfg_attr(feature = "noop_error", doc = " enabled.")]
 //!
 //!    The built-in `chomp::parsers::Error` type is zero-sized and carry no error-information. This
 //!    increases performance somewhat.
 //!
 //! * `std`:
-#![cfg_attr(not(feature="std"), doc = " disabled.")]
-#![cfg_attr(feature="std", doc = " enabled (default).")]
+#![cfg_attr(not(feature = "std"), doc = " disabled.")]
+#![cfg_attr(feature = "std", doc = " enabled (default).")]
 //!
 //!    Chomp includes all features which rely on Rust's `std` library. If this is diabled Chomp
 //!    will use the `no_std` feature, only using Rust's `core` library.
@@ -215,47 +215,47 @@
 //!     * `types::Buffer::to_vec`
 //!     * `types::Buffer::into_vec`
 
-#![warn(missing_docs,
-        missing_debug_implementations,
-        missing_copy_implementations,
-        trivial_casts,
-        unused_import_braces,
-        unused_qualifications)]
-
+#![warn(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    unused_import_braces,
+    unused_qualifications
+)]
 #![cfg_attr(has_specialization, feature(specialization))]
-
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-#![cfg_attr(feature="clippy", warn(
-    nonminimal_bool,
-    option_unwrap_used,
-    print_stdout,
-    result_unwrap_used,
-    shadow_reuse,
-    shadow_same,
-    shadow_unrelated,
-    single_match_else))]
-#![cfg_attr(feature="clippy", allow(inline_always, many_single_char_names))]
-
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(
+    feature = "clippy",
+    warn(
+        nonminimal_bool,
+        option_unwrap_used,
+        print_stdout,
+        result_unwrap_used,
+        shadow_reuse,
+        shadow_same,
+        shadow_unrelated,
+        single_match_else
+    )
+)]
+#![cfg_attr(feature = "clippy", allow(inline_always, many_single_char_names))]
 // `std` is required for tests.
-#![cfg_attr(all(not(feature="std"), not(test)), no_std)]
+#![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 
 /// Inner module to emulate std when using the `core` crate.
 ///
 /// Skipped when using test since we use std for tests.
-#[cfg(all(not(feature="std"), not(test)))]
+#[cfg(all(not(feature = "std"), not(test)))]
 mod std {
     pub use core::{cell, cmp, fmt, iter, marker, mem, ops, ptr, str};
 }
 
-#[cfg(feature="tendril")]
+#[cfg(feature = "tendril")]
 extern crate tendril;
 
 #[macro_use]
 extern crate bitflags;
-extern crate conv;
-extern crate either;
-extern crate debugtrace;
 
 #[macro_use]
 mod macros;
@@ -264,64 +264,31 @@ mod parse;
 pub mod ascii;
 // TODO: Rework buffer module so that at least a part of it can be exposed provided the user
 // provides their own buffers allocated from outside.
-#[cfg(feature="std")]
+#[cfg(feature = "std")]
 pub mod buffer;
 pub mod combinators;
 pub mod parsers;
 pub mod primitives;
 pub mod types;
 
-pub use parse::parse_only;
-pub use parse::parse_only_str;
-pub use parse::run_parser;
+pub use crate::parse::parse_only;
+pub use crate::parse::parse_only_str;
+pub use crate::parse::run_parser;
 
 /// Basic prelude.
 pub mod prelude {
-    pub use parsers::{
-        any,
-        eof,
-        not_token,
-        peek,
-        peek_next,
-        run_scanner,
-        satisfy,
-        satisfy_with,
-        scan,
-        skip_while,
-        string,
-        take,
-        take_remainder,
-        take_till,
-        take_while,
-        take_while1,
-        token,
-    };
-    pub use parsers::{
-        Error,
-        SimpleResult,
-    };
-    pub use combinators::{
-        count,
-        option,
-        or,
-        either,
-        many,
-        many1,
-        sep_by,
-        sep_by1,
-        many_till,
-        skip_many,
+    pub use crate::combinators::{
+        count, either, many, many1, many_till, matched_by, option, or, sep_by, sep_by1, skip_many,
         skip_many1,
-        matched_by,
     };
-    pub use types::{
-        Buffer,
-        Input,
-        U8Input,
-        ParseResult,
+    pub use crate::parsers::{
+        any, eof, not_token, peek, peek_next, run_scanner, satisfy, satisfy_with, scan, skip_while,
+        string, take, take_remainder, take_till, take_while, take_while1, token,
     };
+    pub use crate::parsers::{Error, SimpleResult};
+    pub use crate::types::{Buffer, Input, ParseResult, U8Input};
 
+    pub use crate::parse_only;
+    pub use crate::parse_only_str;
     pub use either::*;
-    pub use parse_only;
-    pub use parse_only_str;
 }

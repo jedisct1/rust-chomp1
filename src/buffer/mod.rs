@@ -27,8 +27,8 @@
 //! # }
 //! ```
 
-mod stateful;
 mod slice;
+mod stateful;
 
 pub mod data_source;
 
@@ -38,12 +38,12 @@ use std::ptr;
 
 use std::cell::Cell;
 
-use types::{Input, ParseResult};
-use types::Buffer as InputBuffer;
-use primitives::Guard;
+use crate::primitives::Guard;
+use crate::types::Buffer as InputBuffer;
+use crate::types::{Input, ParseResult};
 
-pub use self::slice::SliceStream;
 pub use self::data_source::{DataSource, RWDataSource};
+pub use self::slice::SliceStream;
 pub use self::stateful::Source;
 
 const DEFAULT_BUFFER_SIZE: usize = 6 * 1024;
@@ -69,10 +69,13 @@ impl<B: InputBuffer, E: PartialEq<E>> PartialEq for StreamError<B, E> {
     #[inline]
     fn eq(&self, other: &StreamError<B, E>) -> bool {
         match (self, other) {
-            (&StreamError::ParseError(ref b1, ref e1), &StreamError::ParseError(ref b2, ref e2)) => b1 == b2 && e1 == e2,
+            (
+                &StreamError::ParseError(ref b1, ref e1),
+                &StreamError::ParseError(ref b2, ref e2),
+            ) => b1 == b2 && e1 == e2,
             (&StreamError::Incomplete, &StreamError::Incomplete)
-              | (&StreamError::EndOfInput, &StreamError::EndOfInput)
-              | (&StreamError::Retry, &StreamError::Retry)           => true,
+            | (&StreamError::EndOfInput, &StreamError::EndOfInput)
+            | (&StreamError::Retry, &StreamError::Retry) => true,
             _ => false,
         }
     }
@@ -88,17 +91,20 @@ pub trait Stream<'a, 'i> {
     ///
     /// If a `StreamError::Retry` is returned the consuming code it should just retry the action
     /// (the implementation might require a separate call to refill the stream).
-    #[inline]
-    fn parse<F, T, E>(&'a mut self, f: F) -> Result<T, StreamError<<Self::Input as Input>::Buffer, E>>
-      where F: FnOnce(Self::Input) -> ParseResult<Self::Input, T, E>,
-            T: 'i,
-            E: 'i;
+    fn parse<F, T, E>(
+        &'a mut self,
+        f: F,
+    ) -> Result<T, StreamError<<Self::Input as Input>::Buffer, E>>
+    where
+        F: FnOnce(Self::Input) -> ParseResult<Self::Input, T, E>,
+        T: 'i,
+        E: 'i;
 }
 
 /// Input buffer type which contains a flag which tells if we might need to read more data.
 #[must_use]
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct InputBuf<'a, I: 'a>(
+pub struct InputBuf<'a, I>(
     /// If this is set to true a parser has tried to read past the end of this buffer.
     bool,
     /// Current buffer slice
@@ -134,7 +140,7 @@ impl<'a, I: 'a> InputBuf<'a, I> {
 }
 
 impl<'a, I: Copy + PartialEq> Input for InputBuf<'a, I> {
-    type Token  = I;
+    type Token = I;
     type Marker = &'a [I];
     type Buffer = &'a [I];
 
@@ -175,7 +181,9 @@ impl<'a, I: Copy + PartialEq> Input for InputBuf<'a, I> {
 
     #[inline]
     fn _consume_while<F>(&mut self, g: Guard, mut f: F) -> Self::Buffer
-      where F: FnMut(Self::Token) -> bool {
+    where
+        F: FnMut(Self::Token) -> bool,
+    {
         if let Some(n) = self.1.iter().position(|c| !f(*c)) {
             let b = &self.1[..n];
 
@@ -222,7 +230,7 @@ impl<'a, I: Copy + PartialEq> Input for InputBuf<'a, I> {
 ///
 /// Enables the consumer to request specific amounts of data and only consume partial parts of the
 /// buffer.
-pub trait Buffer<I: Copy + PartialEq>: ops::Deref<Target=[I]> {
+pub trait Buffer<I: Copy + PartialEq>: ops::Deref<Target = [I]> {
     /// Attempt to fill the buffer using the closure `F`.
     ///
     /// The successful return from `F` should contain the number of items successfully written to
@@ -235,21 +243,17 @@ pub trait Buffer<I: Copy + PartialEq>: ops::Deref<Target=[I]> {
     /// * Return `0` if no more data is available or if the slice is of zero length.
     ///
     /// * The slice might contain uninitialized memory, do not read from the slice.
-    #[inline]
-    fn fill<S: DataSource<Item=I>>(&mut self, &mut S) -> io::Result<usize>;
+    fn fill<S: DataSource<Item = I>>(&mut self, _: &mut S) -> io::Result<usize>;
 
     /// Buffer attempts to clear space for additional items.
-    #[inline]
-    fn request_space(&mut self, usize);
+    fn request_space(&mut self, _: usize);
 
     /// Consumes the given amount of bytes, must be less than or equal to `len()`.
     ///
     /// Does not invalidate any borrow of data from self.
-    #[inline]
     fn consume(&self, items: usize);
 
     /// Returns the number of bytes left in the buffer.
-    #[inline]
     fn len(&self) -> usize;
 
     /// If the buffer has no more data.
@@ -259,7 +263,6 @@ pub trait Buffer<I: Copy + PartialEq>: ops::Deref<Target=[I]> {
     }
 
     /// Returns the maximum amount of data which can be stored
-    #[inline]
     fn capacity(&self) -> usize;
 }
 
@@ -270,13 +273,13 @@ pub trait Buffer<I: Copy + PartialEq>: ops::Deref<Target=[I]> {
 #[derive(Debug, Eq, PartialEq)]
 pub struct FixedSizeBuffer<I: Copy + PartialEq> {
     /// Backing memory.
-    buffer:    Vec<I>,
+    buffer: Vec<I>,
     /// Number of items of `buffer` which contain actual data.
     populated: usize,
     /// The number of bytes from the start of the buffer which are used.
     ///
     /// As long as used <= populated it is safe.
-    used:      Cell<usize>,
+    used: Cell<usize>,
 }
 
 impl<I: Copy + PartialEq> FixedSizeBuffer<I> {
@@ -303,9 +306,9 @@ impl<I: Copy + PartialEq> FixedSizeBuffer<I> {
         }
 
         FixedSizeBuffer {
-            buffer:    buf,
+            buffer: buf,
             populated: 0,
-            used:      Cell::new(0),
+            used: Cell::new(0),
         }
     }
 }
@@ -328,7 +331,7 @@ impl<I: Copy + PartialEq> ops::DerefMut for FixedSizeBuffer<I> {
 
 impl<I: Copy + PartialEq> Buffer<I> for FixedSizeBuffer<I> {
     #[inline]
-    fn fill<S: DataSource<Item=I>>(&mut self, s: &mut S) -> io::Result<usize> {
+    fn fill<S: DataSource<Item = I>>(&mut self, s: &mut S) -> io::Result<usize> {
         s.read(&mut self.buffer[self.populated..]).map(|n| {
             debug_assert!(self.populated + n <= self.buffer.len());
 
@@ -347,7 +350,11 @@ impl<I: Copy + PartialEq> Buffer<I> for FixedSizeBuffer<I> {
         // Only copy if we actually need to free the space
         if self.buffer.len() - self.populated < items {
             unsafe {
-                ptr::copy(self.buffer.as_ptr().offset(self.used.get() as isize), self.buffer.as_mut_ptr(), self.populated - self.used.get());
+                ptr::copy(
+                    self.buffer.as_ptr().add(self.used.get()),
+                    self.buffer.as_mut_ptr(),
+                    self.populated - self.used.get(),
+                );
             }
 
             self.populated -= self.used.get();
@@ -382,15 +389,15 @@ impl<I: Copy + PartialEq> Buffer<I> for FixedSizeBuffer<I> {
 #[derive(Debug)]
 pub struct GrowingBuffer<I: Copy + PartialEq> {
     /// Backing memory.
-    buffer:    Vec<I>,
+    buffer: Vec<I>,
     /// Number of items of `buffer` which contain actual data.
     populated: usize,
     /// Maximal size of the buffer, 0 means infinity.
-    limit:     usize,
+    limit: usize,
     /// The number of bytes from the start of the buffer which are used.
     ///
     /// As long as used <= populated it is safe.
-    used:      Cell<usize>,
+    used: Cell<usize>,
 }
 
 impl<I: Copy + PartialEq> GrowingBuffer<I> {
@@ -409,10 +416,10 @@ impl<I: Copy + PartialEq> GrowingBuffer<I> {
     #[inline]
     pub fn with_limit(limit: usize) -> Self {
         GrowingBuffer {
-            buffer:    Vec::new(),
+            buffer: Vec::new(),
             populated: 0,
-            limit:     limit,
-            used:      Cell::new(0),
+            limit,
+            used: Cell::new(0),
         }
     }
 }
@@ -435,7 +442,7 @@ impl<I: Copy + PartialEq> ops::DerefMut for GrowingBuffer<I> {
 
 impl<I: Copy + PartialEq> Buffer<I> for GrowingBuffer<I> {
     #[inline]
-    fn fill<S: DataSource<Item=I>>(&mut self, s: &mut S) -> io::Result<usize> {
+    fn fill<S: DataSource<Item = I>>(&mut self, s: &mut S) -> io::Result<usize> {
         s.read(&mut self.buffer[self.populated..]).map(|n| {
             debug_assert!(self.populated + n <= self.buffer.len());
 
@@ -471,7 +478,11 @@ impl<I: Copy + PartialEq> Buffer<I> for GrowingBuffer<I> {
         // Only copy if we actually need to free the space
         if self.buffer.len() - self.populated < items {
             unsafe {
-                ptr::copy(self.buffer.as_ptr().offset(self.used.get() as isize), self.buffer.as_mut_ptr(), self.populated - self.used.get());
+                ptr::copy(
+                    self.buffer.as_ptr().add(self.used.get()),
+                    self.buffer.as_mut_ptr(),
+                    self.populated - self.used.get(),
+                );
             }
 
             self.populated -= self.used.get();
@@ -500,15 +511,15 @@ impl<I: Copy + PartialEq> Buffer<I> for GrowingBuffer<I> {
 #[cfg(test)]
 mod test {
     use super::InputBuf;
-    use types::{Input, ParseResult};
-    use primitives::{IntoInner, Primitives};
+    use crate::primitives::{IntoInner, Primitives};
+    use crate::types::{Input, ParseResult};
 
-    use types::test::run_primitives_test;
+    use crate::types::test::run_primitives_test;
 
     #[test]
     fn ret() {
-        let i1: InputBuf<u8> = InputBuf::new(b"in1");
-        let i2: InputBuf<u8> = InputBuf::new(b"in2");
+        let i1: InputBuf<'_, u8> = InputBuf::new(b"in1");
+        let i2: InputBuf<'_, u8> = InputBuf::new(b"in2");
 
         let r1: ParseResult<_, u32, ()> = i1.ret::<_, ()>(23u32);
         let r2: ParseResult<_, i32, &str> = i2.ret::<_, &str>(23i32);
@@ -519,10 +530,10 @@ mod test {
 
     #[test]
     fn err() {
-        let i1: InputBuf<u8> = InputBuf::new(b"in1");
-        let i2: InputBuf<u8> = InputBuf::new(b"in2");
+        let i1: InputBuf<'_, u8> = InputBuf::new(b"in1");
+        let i2: InputBuf<'_, u8> = InputBuf::new(b"in2");
 
-        let r1: ParseResult<_, (), u32>   = i1.err::<(), _>(23u32);
+        let r1: ParseResult<_, (), u32> = i1.err::<(), _>(23u32);
         let r2: ParseResult<_, &str, i32> = i2.err::<&str, _>(23i32);
 
         assert_eq!(r1.into_inner(), (InputBuf::new(b"in1"), Err(23u32)));
@@ -531,7 +542,6 @@ mod test {
 
     #[test]
     fn test_input_buf() {
-
         run_primitives_test(InputBuf::new(b"abc"), |x| x);
 
         let mut b = InputBuf::new(b"a");

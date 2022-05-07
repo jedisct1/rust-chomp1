@@ -2,26 +2,23 @@
 
 use std::ops::{Add, Mul};
 
-use conv::{
-    NoError,
-    ValueFrom,
-};
 use conv::errors::UnwrapOk;
+use conv::{NoError, ValueFrom};
 
-use types::{Buffer, Input};
-use combinators::{matched_by, option, or};
-use parsers::{SimpleResult, Error, satisfy, skip_while, skip_while1, take_while1, token};
+use crate::combinators::{matched_by, option, or};
+use crate::parsers::{satisfy, skip_while, skip_while1, take_while1, token, Error, SimpleResult};
+use crate::types::{Buffer, Input};
 
 /// Lowercase ASCII predicate.
 #[inline]
 pub fn is_lowercase(c: u8) -> bool {
-    b'a' <= c && c <= b'z'
+    (b'a'..=b'z').contains(&c)
 }
 
 /// Uppercase ASCII character predicate.
 #[inline]
 pub fn is_uppercase(c: u8) -> bool {
-    b'A' <= c && c <= b'Z'
+    (b'A'..=b'Z').contains(&c)
 }
 
 /// ASCII whitespace predicate.
@@ -36,7 +33,7 @@ pub fn is_uppercase(c: u8) -> bool {
 /// * Space
 #[inline]
 pub fn is_whitespace(c: u8) -> bool {
-    9 <= c && c <= 13 || c == b' '
+    (9..=13).contains(&c) || c == b' '
 }
 
 /// A predicate which matches either space (' ') or horizontal tab ('\t').
@@ -54,7 +51,7 @@ pub fn is_end_of_line(c: u8) -> bool {
 /// ASCII digit predicate.
 #[inline]
 pub fn is_digit(c: u8) -> bool {
-    b'0' <= c && c <= b'9'
+    (b'0'..=b'9').contains(&c)
 }
 
 /// ASCII alphabetic predicate.
@@ -82,7 +79,7 @@ pub fn is_alphanumeric(c: u8) -> bool {
 /// assert_eq!(parse_only(skip_whitespace, b" \t "), Ok(()));
 /// ```
 #[inline]
-pub fn skip_whitespace<I: Input<Token=u8>>(i: I) -> SimpleResult<I, ()> {
+pub fn skip_whitespace<I: Input<Token = u8>>(i: I) -> SimpleResult<I, ()> {
     skip_while(i, is_whitespace)
 }
 
@@ -101,7 +98,7 @@ pub fn skip_whitespace<I: Input<Token=u8>>(i: I) -> SimpleResult<I, ()> {
 /// assert_eq!(parse_only(digit, b"1"), Ok(b'1'));
 /// ```
 #[inline]
-pub fn digit<I: Input<Token=u8>>(i: I) -> SimpleResult<I, u8> {
+pub fn digit<I: Input<Token = u8>>(i: I) -> SimpleResult<I, u8> {
     satisfy(i, is_digit)
 }
 
@@ -123,14 +120,20 @@ pub fn digit<I: Input<Token=u8>>(i: I) -> SimpleResult<I, u8> {
 /// assert_eq!(r, Ok(-123i16));
 /// ```
 #[inline]
-pub fn signed<I: Input<Token=u8>, T, F>(i: I, f: F) -> SimpleResult<I, T>
-  where T: Copy + ValueFrom<i8, Err=NoError> + Add<Output=T> + Mul<Output=T>,
-        F: FnOnce(I) -> SimpleResult<I, T> {
-    option(i,
-           |i| satisfy(i, |c| c == b'-' || c == b'+')
-               .map(|s| T::value_from(if s == b'+' { 1 } else { -1 }).unwrap_ok()),
-           T::value_from(1).unwrap_ok())
-        .bind(|i, sign| f(i).map(|num| sign * num))
+pub fn signed<I: Input<Token = u8>, T, F>(i: I, f: F) -> SimpleResult<I, T>
+where
+    T: Copy + ValueFrom<i8, Err = NoError> + Add<Output = T> + Mul<Output = T>,
+    F: FnOnce(I) -> SimpleResult<I, T>,
+{
+    option(
+        i,
+        |i| {
+            satisfy(i, |c| c == b'-' || c == b'+')
+                .map(|s| T::value_from(if s == b'+' { 1 } else { -1 }).unwrap_ok())
+        },
+        T::value_from(1).unwrap_ok(),
+    )
+    .bind(|i, sign| f(i).map(|num| sign * num))
 }
 
 /// Parses a series of digits and converts them to an integer.
@@ -150,7 +153,12 @@ pub fn signed<I: Input<Token=u8>, T, F>(i: I, f: F) -> SimpleResult<I, T>
 /// assert_eq!(r, Ok(123u8));
 /// ```
 #[inline]
-pub fn decimal<I: Input<Token=u8>, T: Copy + ValueFrom<u8, Err=NoError> + Add<Output=T> + Mul<Output=T>>(i: I) -> SimpleResult<I, T> {
+pub fn decimal<
+    I: Input<Token = u8>,
+    T: Copy + ValueFrom<u8, Err = NoError> + Add<Output = T> + Mul<Output = T>,
+>(
+    i: I,
+) -> SimpleResult<I, T> {
     take_while1(i, is_digit).map(to_decimal)
 }
 
@@ -161,12 +169,19 @@ pub fn decimal<I: Input<Token=u8>, T: Copy + ValueFrom<u8, Err=NoError> + Add<Ou
 /// * The slice must not contain any other characters besides 0 to 9.
 /// * The `T` type must be larger than `u8` if it is signed.
 #[inline]
-fn to_decimal<T: Copy + ValueFrom<u8, Err=NoError> + Add<Output=T> + Mul<Output=T>, I: Buffer<Token=u8>>(iter: I) -> T {
-    iter.fold(T::value_from(0).unwrap_ok(), |a, n| a * T::value_from(10).unwrap_ok() + T::value_from(n - b'0').unwrap_ok())
+fn to_decimal<
+    T: Copy + ValueFrom<u8, Err = NoError> + Add<Output = T> + Mul<Output = T>,
+    I: Buffer<Token = u8>,
+>(
+    iter: I,
+) -> T {
+    iter.fold(T::value_from(0).unwrap_ok(), |a, n| {
+        a * T::value_from(10).unwrap_ok() + T::value_from(n - b'0').unwrap_ok()
+    })
 }
 
 /// Trait enabling the conversion from a matched `Buffer` to a float of the correct type.
-pub trait Float<B: Buffer<Token=u8>>: Sized {
+pub trait Float<B: Buffer<Token = u8>>: Sized {
     /// Given an input and a buffer matching `/[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)/`,
     /// convert this buffer into the proper float-representation, error if it is not possible
     /// to determine the correct representation.
@@ -175,16 +190,16 @@ pub trait Float<B: Buffer<Token=u8>>: Sized {
     ///
     /// * Unsafe because the `parse_buffer` implementation should be able to rely on the format of
     ///   the incoming buffer (including well-formed UTF-8).
-    unsafe fn parse_buffer<I: Input<Token=u8, Buffer=B>>(i: I, b: B) -> SimpleResult<I, Self>;
+    unsafe fn parse_buffer<I: Input<Token = u8, Buffer = B>>(i: I, b: B) -> SimpleResult<I, Self>;
 }
 
 /// Only use the generic `Float` impl if we can rely on `Vec`.
-#[cfg(feature="std")]
+#[cfg(feature = "std")]
 mod float_impl {
     use std::str;
 
-    use types::{Buffer, Input};
-    use parsers::{Error, SimpleResult};
+    use crate::parsers::{Error, SimpleResult};
+    use crate::types::{Buffer, Input};
 
     use super::Float;
 
@@ -204,7 +219,9 @@ mod float_impl {
     }
 
     impl<B> Float<B> for f64
-      where B: Buffer<Token=u8> {
+    where
+        B: Buffer<Token = u8>,
+    {
         parse_buffer!(i, b: B, {
             let v = b.into_vec();
 
@@ -226,9 +243,11 @@ mod float_impl {
     }
 
     impl<B> Float<B> for f32
-      where B: Buffer<Token=u8> {
+    where
+        B: Buffer<Token = u8>,
+    {
         parse_buffer!(i, b: B, {
-            let v       = b.into_vec();
+            let v = b.into_vec();
             let s: &str = str::from_utf8_unchecked(&v[..]);
 
             if let Ok(f) = s.parse() {
@@ -245,17 +264,17 @@ mod float_impl {
 /// when `has_specialization` is on since we can enable the unstable `specialization` feature.
 /// We also use this when not using `std` since the default implementation is not provided since it
 /// relies on `Vec`.
-#[cfg(any(has_specialization, not(feature="std")))]
+#[cfg(any(has_specialization, not(feature = "std")))]
 mod float_impl_specialized {
     use std::str;
 
-    use types::Input;
-    use parsers::{Error, SimpleResult};
+    use crate::parsers::{Error, SimpleResult};
+    use crate::types::Input;
 
     use super::Float;
 
     impl<'a> Float<&'a [u8]> for f64 {
-        unsafe fn parse_buffer<I: Input<Token=u8>>(i: I, b: &'a [u8]) -> SimpleResult<I, Self> {
+        unsafe fn parse_buffer<I: Input<Token = u8>>(i: I, b: &'a [u8]) -> SimpleResult<I, Self> {
             let s: &str = str::from_utf8_unchecked(b);
 
             if let Ok(f) = s.parse() {
@@ -268,7 +287,7 @@ mod float_impl_specialized {
     }
 
     impl<'a> Float<&'a [u8]> for f32 {
-        unsafe fn parse_buffer<I: Input<Token=u8>>(i: I, b: &'a [u8]) -> SimpleResult<I, Self> {
+        unsafe fn parse_buffer<I: Input<Token = u8>>(i: I, b: &'a [u8]) -> SimpleResult<I, Self> {
             let s: &str = str::from_utf8_unchecked(b);
 
             if let Ok(f) = s.parse() {
@@ -285,29 +304,32 @@ mod float_impl_specialized {
 ///
 /// Matches `/[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)/`
 #[inline]
-pub fn match_float<I: Input<Token=u8>>(i: I) -> SimpleResult<I, I::Buffer> {
+pub fn match_float<I: Input<Token = u8>>(i: I) -> SimpleResult<I, I::Buffer> {
     /// Parses a sign
     #[inline]
-    fn sign<I: Input<Token=u8>>(i: I) -> SimpleResult<I, u8> {
+    fn sign<I: Input<Token = u8>>(i: I) -> SimpleResult<I, u8> {
         or(i, |i| token(i, b'+'), |i| token(i, b'-'))
     }
 
     /// Parses a signed decimal with optional leading sign
     #[inline]
-    fn signed_decimal<I: Input<Token=u8>>(i: I) -> SimpleResult<I, ()> {
+    fn signed_decimal<I: Input<Token = u8>>(i: I) -> SimpleResult<I, ()> {
         option(i, sign, b'+').then(|i| skip_while1(i, is_digit))
     }
 
     /// Parses e or E
     #[inline]
-    fn e<I: Input<Token=u8>>(i: I) -> SimpleResult<I, u8> {
+    fn e<I: Input<Token = u8>>(i: I) -> SimpleResult<I, u8> {
         or(i, |i| token(i, b'e'), |i| token(i, b'E'))
     }
 
-    matched_by(i, |i|
-        signed_decimal(i).then(|i|
-        option(i, |i| token(i, b'.').then(|i| skip_while1(i, is_digit)), ()).then(|i|
-        option(i, |i| e(i).then(signed_decimal), ())))).map(|(b, _)| b)
+    matched_by(i, |i| {
+        signed_decimal(i).then(|i| {
+            option(i, |i| token(i, b'.').then(|i| skip_while1(i, is_digit)), ())
+                .then(|i| option(i, |i| e(i).then(signed_decimal), ()))
+        })
+    })
+    .map(|(b, _)| b)
 }
 
 // TODO: Maybe we can use specialization to avoid allocation by specializing for a Buffer=&[u8]
@@ -327,18 +349,18 @@ pub fn match_float<I: Input<Token=u8>>(i: I) -> SimpleResult<I, I::Buffer> {
 ///
 /// assert_eq!(parse_only(float, &b"3.14159265359"[..]), Ok(3.14159265359));
 /// ```
-pub fn float<I: Input<Token=u8>, F: Float<I::Buffer>>(i: I) -> SimpleResult<I, F> {
+pub fn float<I: Input<Token = u8>, F: Float<I::Buffer>>(i: I) -> SimpleResult<I, F> {
     match_float(i).bind(|i, b| unsafe { F::parse_buffer(i, b) })
 }
 
 #[inline]
 fn compare_ci(a: u8, b: u8) -> bool {
     (match a {
-        b'A'...b'Z' => a | 0x20,
-        x           => x
+        b'A'..=b'Z' => a | 0x20,
+        x => x,
     } == match b {
-        b'A'...b'Z' => b | 0x20,
-        x           => x
+        b'A'..=b'Z' => b | 0x20,
+        x => x,
     })
 }
 
@@ -355,18 +377,17 @@ fn compare_ci(a: u8, b: u8) -> bool {
 /// assert_eq!(parse_only(|i| string_ci(i, b"abc"), b"abcdef"), Ok(&b"abc"[..]));
 /// assert_eq!(parse_only(|i| string_ci(i, b"abc"), b"aBCdef"), Ok(&b"aBC"[..]));
 /// ```
-pub fn string_ci<I: Input<Token=u8>>(mut i: I, s: &'static [u8]) -> SimpleResult<I, I::Buffer> {
-    use primitives::Primitives;
+pub fn string_ci<I: Input<Token = u8>>(mut i: I, s: &'static [u8]) -> SimpleResult<I, I::Buffer> {
+    use crate::primitives::Primitives;
 
     let mut n = 0;
-    let len   = s.len();
+    let len = s.len();
 
     // TODO: There has to be some more efficient way here
     let b = i.consume_while(|c| {
         if n >= len || !compare_ci(c, s[n]) {
             false
-        }
-        else {
+        } else {
             n += 1;
 
             true
@@ -382,9 +403,9 @@ pub fn string_ci<I: Input<Token=u8>>(mut i: I, s: &'static [u8]) -> SimpleResult
 
 #[cfg(test)]
 mod test {
-    use super::{compare_ci, float, match_float, to_decimal, string_ci};
-    use parsers::Error;
-    use primitives::IntoInner;
+    use super::{compare_ci, float, match_float, string_ci, to_decimal};
+    use crate::parsers::Error;
+    use crate::primitives::IntoInner;
 
     macro_rules! test_to_decimal {
         ( $($n:ty),+ ) => { $(
@@ -405,29 +426,86 @@ mod test {
 
     #[test]
     fn match_float_test() {
-        assert_eq!(match_float(&b"abc"[..]).into_inner(),           (&b"abc"[..], Err(Error::unexpected())));
-        assert_eq!(match_float(&b"1.0e+1"[..]).into_inner(),        (&b""[..], Ok(&b"1.0e+1"[..])));
-        assert_eq!(match_float(&b"1.0e1"[..]).into_inner(),         (&b""[..], Ok(&b"1.0e1"[..])));
-        assert_eq!(match_float(&b"1e1"[..]).into_inner(),           (&b""[..], Ok(&b"1e1"[..])));
-        assert_eq!(match_float(&b"3.12159265359"[..]).into_inner(), (&b""[..], Ok(&b"3.12159265359"[..])));
-        assert_eq!(match_float(&b"1.0"[..]).into_inner(),           (&b""[..], Ok(&b"1.0"[..])));
-        assert_eq!(match_float(&b"1"[..]).into_inner(),             (&b""[..], Ok(&b"1"[..])));
-        assert_eq!(match_float(&b"1."[..]).into_inner(),            (&b"."[..], Ok(&b"1"[..])));
-        assert_eq!(match_float(&b"1.."[..]).into_inner(),           (&b".."[..], Ok(&b"1"[..])));
-        assert_eq!(match_float(&b"1.abc"[..]).into_inner(),         (&b".abc"[..], Ok(&b"1"[..])));
-        assert_eq!(match_float(&b"0.234"[..]).into_inner(),         (&b""[..], Ok(&b"0.234"[..])));
-        assert_eq!(match_float(&b"0.234e-123"[..]).into_inner(),    (&b""[..], Ok(&b"0.234e-123"[..])));
-        assert_eq!(match_float(&b"0.234e-123  "[..]).into_inner(),  (&b"  "[..], Ok(&b"0.234e-123"[..])));
-        assert_eq!(match_float(&b"0.234e-123ee"[..]).into_inner(),  (&b"ee"[..], Ok(&b"0.234e-123"[..])));
-        assert_eq!(match_float(&b"0.234e-123.."[..]).into_inner(),  (&b".."[..], Ok(&b"0.234e-123"[..])));
-        assert_eq!(match_float(&b"0.234e-.."[..]).into_inner(),     (&b"e-.."[..], Ok(&b"0.234"[..])));
+        assert_eq!(
+            match_float(&b"abc"[..]).into_inner(),
+            (&b"abc"[..], Err(Error::unexpected()))
+        );
+        assert_eq!(
+            match_float(&b"1.0e+1"[..]).into_inner(),
+            (&b""[..], Ok(&b"1.0e+1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1.0e1"[..]).into_inner(),
+            (&b""[..], Ok(&b"1.0e1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1e1"[..]).into_inner(),
+            (&b""[..], Ok(&b"1e1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"3.12159265359"[..]).into_inner(),
+            (&b""[..], Ok(&b"3.12159265359"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1.0"[..]).into_inner(),
+            (&b""[..], Ok(&b"1.0"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1"[..]).into_inner(),
+            (&b""[..], Ok(&b"1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1."[..]).into_inner(),
+            (&b"."[..], Ok(&b"1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1.."[..]).into_inner(),
+            (&b".."[..], Ok(&b"1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"1.abc"[..]).into_inner(),
+            (&b".abc"[..], Ok(&b"1"[..]))
+        );
+        assert_eq!(
+            match_float(&b"0.234"[..]).into_inner(),
+            (&b""[..], Ok(&b"0.234"[..]))
+        );
+        assert_eq!(
+            match_float(&b"0.234e-123"[..]).into_inner(),
+            (&b""[..], Ok(&b"0.234e-123"[..]))
+        );
+        assert_eq!(
+            match_float(&b"0.234e-123  "[..]).into_inner(),
+            (&b"  "[..], Ok(&b"0.234e-123"[..]))
+        );
+        assert_eq!(
+            match_float(&b"0.234e-123ee"[..]).into_inner(),
+            (&b"ee"[..], Ok(&b"0.234e-123"[..]))
+        );
+        assert_eq!(
+            match_float(&b"0.234e-123.."[..]).into_inner(),
+            (&b".."[..], Ok(&b"0.234e-123"[..]))
+        );
+        assert_eq!(
+            match_float(&b"0.234e-.."[..]).into_inner(),
+            (&b"e-.."[..], Ok(&b"0.234"[..]))
+        );
     }
 
     #[test]
     fn float_test() {
-        assert_eq!(float(&b"3.14159265359"[..]).into_inner(), (&b""[..], Ok(3.14159265359)));
-        assert_eq!(float(&b"+3.14159265359"[..]).into_inner(), (&b""[..], Ok(3.14159265359)));
-        assert_eq!(float(&b"-3.14159265359"[..]).into_inner(), (&b""[..], Ok(-3.14159265359)));
+        assert_eq!(
+            float(&b"3.14159265359"[..]).into_inner(),
+            (&b""[..], Ok(3.14159265359))
+        );
+        assert_eq!(
+            float(&b"+3.14159265359"[..]).into_inner(),
+            (&b""[..], Ok(3.14159265359))
+        );
+        assert_eq!(
+            float(&b"-3.14159265359"[..]).into_inner(),
+            (&b""[..], Ok(-3.14159265359))
+        );
         assert_eq!(float(&b"0.0"[..]).into_inner(), (&b""[..], Ok(0.0)));
         assert_eq!(float(&b"0"[..]).into_inner(), (&b""[..], Ok(0.0)));
         assert_eq!(float(&b"1"[..]).into_inner(), (&b""[..], Ok(1.0)));
@@ -461,11 +539,11 @@ mod test {
         for i in 0..127 {
             for j in 0..127 {
                 let eq = match i {
-                    b'A'...b'Z' => i | 0x20,
-                    x           => x
+                    b'A'..=b'Z' => i | 0x20,
+                    x => x,
                 } == match j {
-                    b'A'...b'Z' => j | 0x20,
-                    x           => x
+                    b'A'..=b'Z' => j | 0x20,
+                    x => x,
                 };
 
                 assert_eq!(eq, compare_ci(i, j), "{} {} failed", i, j);
@@ -475,38 +553,122 @@ mod test {
 
     #[test]
     fn string_ci_test() {
-        assert_eq!(string_ci(&b""[..],    b""     ).into_inner(), (&b""[..],    Ok(&b""[..])));
-        assert_eq!(string_ci(&b""[..],    b"a"    ).into_inner(), (&b""[..],    Err(Error::expected(b'a'))));
-        assert_eq!(string_ci(&b"a"[..],   b"a"    ).into_inner(), (&b""[..],    Ok(&b"a"[..])));
-        assert_eq!(string_ci(&b"b"[..],   b"a"    ).into_inner(), (&b"b"[..],   Err(Error::expected(b'a'))));
-        assert_eq!(string_ci(&b"abc"[..], b"a"    ).into_inner(), (&b"bc"[..],  Ok(&b"a"[..])));
-        assert_eq!(string_ci(&b"abc"[..], b"ab"   ).into_inner(), (&b"c"[..],   Ok(&b"ab"[..])));
-        assert_eq!(string_ci(&b"abc"[..], b"abc"  ).into_inner(), (&b""[..],    Ok(&b"abc"[..])));
-        assert_eq!(string_ci(&b"abc"[..], b"abcd" ).into_inner(), (&b""[..],    Err(Error::expected(b'd'))));
-        assert_eq!(string_ci(&b"abc"[..], b"abcde").into_inner(), (&b""[..],    Err(Error::expected(b'd'))));
-        assert_eq!(string_ci(&b"abc"[..], b"ac"   ).into_inner(), (&b"bc"[..],  Err(Error::expected(b'c'))));
+        assert_eq!(
+            string_ci(&b""[..], b"").into_inner(),
+            (&b""[..], Ok(&b""[..]))
+        );
+        assert_eq!(
+            string_ci(&b""[..], b"a").into_inner(),
+            (&b""[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(
+            string_ci(&b"a"[..], b"a").into_inner(),
+            (&b""[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"b"[..], b"a").into_inner(),
+            (&b"b"[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(
+            string_ci(&b"abc"[..], b"a").into_inner(),
+            (&b"bc"[..], Ok(&b"a"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"abc"[..], b"ab").into_inner(),
+            (&b"c"[..], Ok(&b"ab"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"abc"[..], b"abc").into_inner(),
+            (&b""[..], Ok(&b"abc"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"abc"[..], b"abcd").into_inner(),
+            (&b""[..], Err(Error::expected(b'd')))
+        );
+        assert_eq!(
+            string_ci(&b"abc"[..], b"abcde").into_inner(),
+            (&b""[..], Err(Error::expected(b'd')))
+        );
+        assert_eq!(
+            string_ci(&b"abc"[..], b"ac").into_inner(),
+            (&b"bc"[..], Err(Error::expected(b'c')))
+        );
 
-        assert_eq!(string_ci(&b""[..],    b""     ).into_inner(), (&b""[..],    Ok(&b""[..])));
-        assert_eq!(string_ci(&b""[..],    b"a"    ).into_inner(), (&b""[..],    Err(Error::expected(b'a'))));
-        assert_eq!(string_ci(&b"A"[..],   b"a"    ).into_inner(), (&b""[..],    Ok(&b"A"[..])));
-        assert_eq!(string_ci(&b"B"[..],   b"a"    ).into_inner(), (&b"B"[..],   Err(Error::expected(b'a'))));
-        assert_eq!(string_ci(&b"ABC"[..], b"a"    ).into_inner(), (&b"BC"[..],  Ok(&b"A"[..])));
-        assert_eq!(string_ci(&b"ABC"[..], b"ab"   ).into_inner(), (&b"C"[..],   Ok(&b"AB"[..])));
-        assert_eq!(string_ci(&b"ABC"[..], b"abc"  ).into_inner(), (&b""[..],    Ok(&b"ABC"[..])));
-        assert_eq!(string_ci(&b"ABC"[..], b"abcd" ).into_inner(), (&b""[..],    Err(Error::expected(b'd'))));
-        assert_eq!(string_ci(&b"ABC"[..], b"abcde").into_inner(), (&b""[..],    Err(Error::expected(b'd'))));
-        assert_eq!(string_ci(&b"ABC"[..], b"ac"   ).into_inner(), (&b"BC"[..],  Err(Error::expected(b'c'))));
+        assert_eq!(
+            string_ci(&b""[..], b"").into_inner(),
+            (&b""[..], Ok(&b""[..]))
+        );
+        assert_eq!(
+            string_ci(&b""[..], b"a").into_inner(),
+            (&b""[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(
+            string_ci(&b"A"[..], b"a").into_inner(),
+            (&b""[..], Ok(&b"A"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"B"[..], b"a").into_inner(),
+            (&b"B"[..], Err(Error::expected(b'a')))
+        );
+        assert_eq!(
+            string_ci(&b"ABC"[..], b"a").into_inner(),
+            (&b"BC"[..], Ok(&b"A"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"ABC"[..], b"ab").into_inner(),
+            (&b"C"[..], Ok(&b"AB"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"ABC"[..], b"abc").into_inner(),
+            (&b""[..], Ok(&b"ABC"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"ABC"[..], b"abcd").into_inner(),
+            (&b""[..], Err(Error::expected(b'd')))
+        );
+        assert_eq!(
+            string_ci(&b"ABC"[..], b"abcde").into_inner(),
+            (&b""[..], Err(Error::expected(b'd')))
+        );
+        assert_eq!(
+            string_ci(&b"ABC"[..], b"ac").into_inner(),
+            (&b"BC"[..], Err(Error::expected(b'c')))
+        );
 
-        assert_eq!(string_ci(&b"{|}"[..], b"{|}"  ).into_inner(), (&b""[..],     Ok(&b"{|}"[..])));
-        assert_eq!(string_ci(&b"[\\]"[..],b"{|}"  ).into_inner(), (&b"[\\]"[..], Err(Error::expected(b'{'))));
-        assert_eq!(string_ci(&b"[\\]"[..],b"[\\]" ).into_inner(), (&b""[..],     Ok(&b"[\\]"[..])));
-        assert_eq!(string_ci(&b"{|}"[..], b"[\\]" ).into_inner(), (&b"{|}"[..],  Err(Error::expected(b'['))));
+        assert_eq!(
+            string_ci(&b"{|}"[..], b"{|}").into_inner(),
+            (&b""[..], Ok(&b"{|}"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"[\\]"[..], b"{|}").into_inner(),
+            (&b"[\\]"[..], Err(Error::expected(b'{')))
+        );
+        assert_eq!(
+            string_ci(&b"[\\]"[..], b"[\\]").into_inner(),
+            (&b""[..], Ok(&b"[\\]"[..]))
+        );
+        assert_eq!(
+            string_ci(&b"{|}"[..], b"[\\]").into_inner(),
+            (&b"{|}"[..], Err(Error::expected(b'[')))
+        );
 
-        assert_eq!(string_ci("äbc".as_bytes(), "ä".as_bytes()).into_inner(), (&b"bc"[..],  Ok("ä".as_bytes())));
+        assert_eq!(
+            string_ci("äbc".as_bytes(), "ä".as_bytes()).into_inner(),
+            (&b"bc"[..], Ok("ä".as_bytes()))
+        );
         // We need to slice a bit, since the first byte of the two-byte ä and Ä are is the same,
         // so that one will match
-        assert_eq!(string_ci("ÄBC".as_bytes(), "ä".as_bytes()).into_inner(), (&"ÄBC".as_bytes()[1..], Err(Error::expected("ä".as_bytes()[1]))));
+        assert_eq!(
+            string_ci("ÄBC".as_bytes(), "ä".as_bytes()).into_inner(),
+            (
+                &"ÄBC".as_bytes()[1..],
+                Err(Error::expected("ä".as_bytes()[1]))
+            )
+        );
 
-        assert_eq!(string_ci(&b"125"[..], b"125").into_inner(), (&b""[..],    Ok(&b"125"[..])));
+        assert_eq!(
+            string_ci(&b"125"[..], b"125").into_inner(),
+            (&b""[..], Ok(&b"125"[..]))
+        );
     }
 }

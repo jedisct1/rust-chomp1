@@ -449,7 +449,9 @@ macro_rules! parse {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __parse_internal_or {
-    ($input:expr, $lhs:expr, $rhs:expr) => { $crate::combinators::or($input, $lhs, $rhs) };
+    ($input:expr, $lhs:expr, $rhs:expr) => {
+        $crate::combinators::or($input, $lhs, $rhs)
+    };
 }
 
 /// Actual implementation of the parse macro, hidden to make the documentation easier to read.
@@ -620,16 +622,14 @@ mod test {
     /// Override the or-combinator used by parse! to make it possible to use the simplified
     /// test-types.
     macro_rules! __parse_internal_or {
-        ($input:expr, $lhs:expr, $rhs:expr) => {
-            {
-                let Input(i) = $input;
+        ($input:expr, $lhs:expr, $rhs:expr) => {{
+            let Input(i) = $input;
 
-                match ($lhs)(Input(i)) {
-                    Data::Value(j, t) => Data::Value(j, t),
-                    Data::Error(_, _) => ($rhs)(Input(i)),
-                }
+            match ($lhs)(Input(i)) {
+                Data::Value(j, t) => Data::Value(j, t),
+                Data::Error(_, _) => ($rhs)(Input(i)),
             }
-        };
+        }};
     }
 
     /// Simplified implementation of the emulated monad using linear types.
@@ -654,22 +654,26 @@ mod test {
 
     impl<T, E> Data<T, E> {
         fn bind<F, U, V>(self, f: F) -> Data<U, V>
-          where F: FnOnce(Input, T) -> Data<U, V>,
-                V: From<E> {
+        where
+            F: FnOnce(Input, T) -> Data<U, V>,
+            V: From<E>,
+        {
             match self {
                 // Embedded f(Input(i), t).map_err(From::from),
                 // reason is that the API parse! uses is only ret, err, bind and map (in addition
                 // to the __parse_internal_or macro).
                 Data::Value(i, t) => match f(Input(i), t) {
                     Data::Value(i, t) => Data::Value(i, t),
-                    Data::Error(i, e) => Data::Error(i, From::from(e)),
+                    Data::Error(i, e) => Data::Error(i, e),
                 },
                 Data::Error(i, e) => Data::Error(i, From::from(e)),
             }
         }
 
         fn map<F, U>(self, f: F) -> Data<U, E>
-          where F: FnOnce(T) -> U {
+        where
+            F: FnOnce(T) -> U,
+        {
             match self {
                 Data::Value(i, t) => Data::Value(i, f(t)),
                 Data::Error(i, e) => Data::Error(i, e),
@@ -681,14 +685,14 @@ mod test {
     fn empty() {
         let i = 123;
 
-        let r = parse!{i};
+        let r = parse! {i};
 
         assert_eq!(r, 123);
     }
 
     #[test]
     fn empty_expr() {
-        let r = parse!{1 + 2};
+        let r = parse! {1 + 2};
 
         assert_eq!(r, 3);
     }
@@ -698,7 +702,7 @@ mod test {
         let i = Input(123);
 
         // Type annotation necessary since ret leaves E free
-        let r: Data<_, ()> = parse!{i; ret "foo"};
+        let r: Data<_, ()> = parse! {i; ret "foo"};
 
         assert_eq!(r, Data::Value(123, "foo"));
     }
@@ -707,7 +711,7 @@ mod test {
     fn ret_typed() {
         let i = Input(123);
 
-        let r = parse!{i; ret @ _, (): "foo"};
+        let r = parse! {i; ret @ _, (): "foo"};
 
         assert_eq!(r, Data::Value(123, "foo"));
     }
@@ -716,7 +720,7 @@ mod test {
     fn ret_typed2() {
         let i = Input(123);
 
-        let r = parse!{i; ret @ &str, (): "foo"};
+        let r = parse! {i; ret @ &str, (): "foo"};
 
         assert_eq!(r, Data::Value(123, "foo"));
     }
@@ -726,7 +730,7 @@ mod test {
         let i = Input(123);
 
         // Type annotation necessary since err leaves T free
-        let r: Data<(), _> = parse!{i; err "foo"};
+        let r: Data<(), _> = parse! {i; err "foo"};
 
         assert_eq!(r, Data::Error(123, "foo"));
     }
@@ -735,7 +739,7 @@ mod test {
     fn err_typed() {
         let i = Input(123);
 
-        let r = parse!{i; err @(), _: "foo"};
+        let r = parse! {i; err @(), _: "foo"};
 
         assert_eq!(r, Data::Error(123, "foo"));
     }
@@ -744,7 +748,7 @@ mod test {
     fn err_typed2() {
         let i = Input(123);
 
-        let r = parse!{i; err @(), &str: "foo"};
+        let r = parse! {i; err @(), &str: "foo"};
 
         assert_eq!(r, Data::Error(123, "foo"));
     }
@@ -860,7 +864,7 @@ mod test {
         let i2 = Input(123);
 
         let r1: Data<_, ()> = parse!(i1; doit(2); ret 5);
-        let r2              = parse!(i2; doit(2); ret @ _, (): 5);
+        let r2 = parse!(i2; doit(2); ret @ _, (): 5);
 
         assert_eq!(r1, Data::Value(321, 5));
         assert_eq!(r2, Data::Value(321, 5));
@@ -882,8 +886,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; doit(2); something(4, 5); ret 5};
-        let r2              = parse!{i2; doit(2); something(4, 5); ret @ _, (): 5};
+        let r1: Data<_, ()> = parse! {i1; doit(2); something(4, 5); ret 5};
+        let r2 = parse! {i2; doit(2); something(4, 5); ret @ _, (): 5};
 
         assert_eq!(r1, Data::Value(111, 5));
         assert_eq!(r2, Data::Value(111, 5));
@@ -900,8 +904,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let n = doit(40); ret n + 2};
-        let r2              = parse!{i2; let n = doit(40); ret @ _, (): n + 2};
+        let r1: Data<_, ()> = parse! {i1; let n = doit(40); ret n + 2};
+        let r2 = parse! {i2; let n = doit(40); ret @ _, (): n + 2};
 
         assert_eq!(r1, Data::Value(321, 42));
         assert_eq!(r2, Data::Value(321, 42));
@@ -923,9 +927,9 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let n = doit(40); let x = something(n, 4); ret x + 6};
-        let r2              = parse!{i2; let n = doit(40); let x = something(n, 4);
-                                  ret @ _, (): x + 6};
+        let r1: Data<_, ()> = parse! {i1; let n = doit(40); let x = something(n, 4); ret x + 6};
+        let r2 = parse! {i2; let n = doit(40); let x = something(n, 4);
+        ret @ _, (): x + 6};
 
         assert_eq!(r1, Data::Value(111, 42));
         assert_eq!(r2, Data::Value(111, 42));
@@ -942,8 +946,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<(), u8> = parse!{i1; let n = doit(40); err n as u8 + 2};
-        let r2               = parse!{i2; let n = doit(40); err @ (), u8: n as u8 + 2};
+        let r1: Data<(), u8> = parse! {i1; let n = doit(40); err n as u8 + 2};
+        let r2 = parse! {i2; let n = doit(40); err @ (), u8: n as u8 + 2};
 
         assert_eq!(r1, Data::Error(321, 42));
         assert_eq!(r2, Data::Error(321, 42));
@@ -965,9 +969,10 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<(), u8> = parse!{i1; let n = doit(40); let x = something(n, 4); err x as u8 + 6};
-        let r2               = parse!{i2; let n = doit(40); let x = something(n, 4);
-                                  err @ (), u8: x as u8 + 6};
+        let r1: Data<(), u8> =
+            parse! {i1; let n = doit(40); let x = something(n, 4); err x as u8 + 6};
+        let r2 = parse! {i2; let n = doit(40); let x = something(n, 4);
+        err @ (), u8: x as u8 + 6};
 
         assert_eq!(r1, Data::Error(111, 42));
         assert_eq!(r2, Data::Error(111, 42));
@@ -989,8 +994,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let x = something(6, 4); doit(x)};
-        let r2              = parse!{i2; let x = something(6, 4); doit(x)};
+        let r1: Data<_, ()> = parse! {i1; let x = something(6, 4); doit(x)};
+        let r2 = parse! {i2; let x = something(6, 4); doit(x)};
 
         assert_eq!(r1, Data::Value(321, 2));
         assert_eq!(r2, Data::Value(321, 2));
@@ -1012,8 +1017,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let _x = something(6, 4); doit(3)};
-        let r2              = parse!{i2; let _x = something(6, 4); doit(3)};
+        let r1: Data<_, ()> = parse! {i1; let _x = something(6, 4); doit(3)};
+        let r2 = parse! {i2; let _x = something(6, 4); doit(3)};
 
         assert_eq!(r1, Data::Value(321, 3));
         assert_eq!(r2, Data::Value(321, 3));
@@ -1030,8 +1035,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let n: u64 = doit(42); ret n};
-        let r2              = parse!{i2; let n: u64 = doit(42); ret @ _, (): n};
+        let r1: Data<_, ()> = parse! {i1; let n: u64 = doit(42); ret n};
+        let r2 = parse! {i2; let n: u64 = doit(42); ret @ _, (): n};
 
         assert_eq!(r1, Data::Value(321, 42u64));
         assert_eq!(r2, Data::Value(321, 42u64));
@@ -1048,8 +1053,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let (x, y) = something(2, 4); ret x + y};
-        let r2              = parse!{i2; let (x, y) = something(2, 4); ret @ _, (): x + y};
+        let r1: Data<_, ()> = parse! {i1; let (x, y) = something(2, 4); ret x + y};
+        let r2 = parse! {i2; let (x, y) = something(2, 4); ret @ _, (): x + y};
 
         assert_eq!(r1, Data::Value(111, 6));
         assert_eq!(r2, Data::Value(111, 6));
@@ -1071,10 +1076,10 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let n = doit(40); let (x, y) = something(n, 4);
-                                  ret x + y as i32};
-        let r2              = parse!{i2; let n = doit(40); let (x, y) = something(n, 4);
-                                  ret @ _, (): x + y as i32};
+        let r1: Data<_, ()> = parse! {i1; let n = doit(40); let (x, y) = something(n, 4);
+        ret x + y as i32};
+        let r2 = parse! {i2; let n = doit(40); let (x, y) = something(n, 4);
+        ret @ _, (): x + y as i32};
 
         assert_eq!(r1, Data::Value(111, 44));
         assert_eq!(r2, Data::Value(111, 44));
@@ -1092,7 +1097,7 @@ mod test {
         let i2 = Input(123);
 
         let r1: Data<(), u8> = parse!(i1; doit(2); err 5);
-        let r2               = parse!(i2; doit(2); err @ (), u8: 5);
+        let r2 = parse!(i2; doit(2); err @ (), u8: 5);
 
         assert_eq!(r1, Data::Error(321, 5));
         assert_eq!(r2, Data::Error(321, 5));
@@ -1114,8 +1119,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<(), u8> = parse!{i1; doit(2); something(4, 5); err 5};
-        let r2               = parse!{i2; doit(2); something(4, 5); err @ (), u8: 5};
+        let r1: Data<(), u8> = parse! {i1; doit(2); something(4, 5); err 5};
+        let r2 = parse! {i2; doit(2); something(4, 5); err @ (), u8: 5};
 
         assert_eq!(r1, Data::Error(111, 5));
         assert_eq!(r2, Data::Error(111, 5));
@@ -1125,7 +1130,7 @@ mod test {
     fn inline_action() {
         let i = Input(123);
 
-        let r = parse!{i;
+        let r = parse! {i;
             s -> {
                 // Essentially just Input(123).ret(23):
                 assert_eq!(s, Input(123));
@@ -1147,7 +1152,7 @@ mod test {
 
         let i = Input(123);
 
-        let r = parse!{i;
+        let r = parse! {i;
             doit();
             s -> {
                 // Essentially just Input(123).ret(23):
@@ -1164,7 +1169,7 @@ mod test {
     fn inline_action3() {
         let i = Input(123);
 
-        let r = parse!{i;
+        let r = parse! {i;
             s -> s.ret::<u8, ()>(23)
         };
 
@@ -1175,7 +1180,7 @@ mod test {
     fn inline_action_bind() {
         let i = Input(123);
 
-        let r = parse!{i;
+        let r = parse! {i;
             let v = s -> {
                 assert_eq!(s, Input(123));
 
@@ -1197,7 +1202,7 @@ mod test {
 
         let i = Input(123);
 
-        let r = parse!{i;
+        let r = parse! {i;
             let n = doit();
             let v = s -> {
                 assert_eq!(n, 2);
@@ -1216,8 +1221,8 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<_, ()> = parse!{i1; let a = ret "test"; ret a};
-        let r2: Data<_, ()> = parse!{i2; ret "throwaway"; ret "foo"};
+        let r1: Data<_, ()> = parse! {i1; let a = ret "test"; ret a};
+        let r2: Data<_, ()> = parse! {i2; ret "throwaway"; ret "foo"};
 
         assert_eq!(r1, Data::Value(123, "test"));
         assert_eq!(r2, Data::Value(123, "foo"));
@@ -1228,10 +1233,10 @@ mod test {
         let i1 = Input(123);
         let i2 = Input(123);
 
-        let r1: Data<&str, &str> = parse!{i1; let a = err "error"; ret a};
+        let r1: Data<&str, &str> = parse! {i1; let a = err "error"; ret a};
         // Necessary with type annotation here since the value type is not defined in the first
         // statement in parse
-        let r2: Data<(), &str>   = parse!{i2; err @ (), _: "this"; err "not this"};
+        let r2: Data<(), &str> = parse! {i2; err @ (), _: "this"; err "not this"};
 
         assert_eq!(r1, Data::Error(123, "error"));
         assert_eq!(r2, Data::Error(123, "this"));
@@ -1255,10 +1260,10 @@ mod test {
         let i3 = Input(123);
         let i4 = Input(123);
 
-        let r1 = parse!{i1; fail() <|> doit() };
-        let r2 = parse!{i2; doit() <|> fail() };
-        let r3 = parse!{i3; doit() <|> doit() };
-        let r4 = parse!{i4; fail() <|> fail() };
+        let r1 = parse! {i1; fail() <|> doit() };
+        let r2 = parse! {i2; doit() <|> fail() };
+        let r3 = parse! {i3; doit() <|> doit() };
+        let r4 = parse! {i4; fail() <|> fail() };
 
         assert_eq!(r1, Data::Value(321, 2));
         assert_eq!(r2, Data::Value(321, 2));
@@ -1281,8 +1286,7 @@ mod test {
 
         let i = Input(123);
 
-
-        let r1 = parse!{i; fail() <|> fail() <|> doit() };
+        let r1 = parse! {i; fail() <|> fail() <|> doit() };
 
         assert_eq!(r1, Data::Value(321, 2));
     }
@@ -1305,14 +1309,13 @@ mod test {
             Data::Value(322, 42)
         }
 
-
         let i1 = Input(123);
         let i2 = Input(123);
         let i3 = Input(123);
 
-        let r1 = parse!{i1; fail() <|> doit(); next() };
-        let r2 = parse!{i2; doit() <|> fail(); next() };
-        let r3 = parse!{i3; fail() <|> fail(); next() };
+        let r1 = parse! {i1; fail() <|> doit(); next() };
+        let r2 = parse! {i2; doit() <|> fail(); next() };
+        let r3 = parse! {i3; fail() <|> fail(); next() };
 
         assert_eq!(r1, Data::Value(322, 42));
         assert_eq!(r2, Data::Value(322, 42));
@@ -1337,43 +1340,43 @@ mod test {
             Data::Value(323, 43)
         }
 
-        let i1  = Input(123);
-        let i2  = Input(123);
-        let i3  = Input(123);
-        let i4  = Input(123);
-        let i5  = Input(123);
-        let i6  = Input(123);
-        let i7  = Input(123);
+        let i1 = Input(123);
+        let i2 = Input(123);
+        let i3 = Input(123);
+        let i4 = Input(123);
+        let i5 = Input(123);
+        let i6 = Input(123);
+        let i7 = Input(123);
         let i_8 = Input(123);
-        let i9  = Input(123);
+        let i9 = Input(123);
         let i10 = Input(123);
         let i11 = Input(123);
         let i12 = Input(123);
 
-        let r1  = parse!{i1; a() <* b() <* c()};
-        let r2  = parse!{i2; a() <* b() >> c()};
-        let r3  = parse!{i3; a() >> b() <* c()};
-        let r4  = parse!{i4; a() >> b() >> c()};
+        let r1 = parse! {i1; a() <* b() <* c()};
+        let r2 = parse! {i2; a() <* b() >> c()};
+        let r3 = parse! {i3; a() >> b() <* c()};
+        let r4 = parse! {i4; a() >> b() >> c()};
 
-        let r5  = parse!{i5;  (a() <* b()) <* c()};
-        let r6  = parse!{i6;   a() <* (b() <* c())};
-        let r7  = parse!{i7;  (a() <* b()) >> c()};
-        let r8  = parse!{i_8;  a() <* (b() >> c())};
-        let r9  = parse!{i9;  (a() >> b()) <* c()};
-        let r10 = parse!{i10;  a() >> (b() <* c())};
-        let r11 = parse!{i11; (a() >> b()) >> c()};
-        let r12 = parse!{i12;  a() >> (b() >> c())};
+        let r5 = parse! {i5;  (a() <* b()) <* c()};
+        let r6 = parse! {i6;   a() <* (b() <* c())};
+        let r7 = parse! {i7;  (a() <* b()) >> c()};
+        let r8 = parse! {i_8;  a() <* (b() >> c())};
+        let r9 = parse! {i9;  (a() >> b()) <* c()};
+        let r10 = parse! {i10;  a() >> (b() <* c())};
+        let r11 = parse! {i11; (a() >> b()) >> c()};
+        let r12 = parse! {i12;  a() >> (b() >> c())};
 
         assert_eq!(r1, Data::Value(323, 2));
         assert_eq!(r2, Data::Value(323, 43));
         assert_eq!(r3, Data::Value(323, 42));
         assert_eq!(r4, Data::Value(323, 43));
 
-        assert_eq!(r5,  Data::Value(323, 2));
-        assert_eq!(r6,  Data::Value(323, 2));
-        assert_eq!(r7,  Data::Value(323, 43));
-        assert_eq!(r8,  Data::Value(323, 2));
-        assert_eq!(r9,  Data::Value(323, 42));
+        assert_eq!(r5, Data::Value(323, 2));
+        assert_eq!(r6, Data::Value(323, 2));
+        assert_eq!(r7, Data::Value(323, 43));
+        assert_eq!(r8, Data::Value(323, 2));
+        assert_eq!(r9, Data::Value(323, 42));
         assert_eq!(r10, Data::Value(323, 42));
         assert_eq!(r11, Data::Value(323, 43));
         assert_eq!(r12, Data::Value(323, 43));
@@ -1403,32 +1406,32 @@ mod test {
             Data::Value(323, 43)
         }
 
-        let i1  = Input(123);
-        let i2  = Input(123);
-        let i3  = Input(123);
-        let i4  = Input(123);
-        let i5  = Input(123);
-        let i6  = Input(123);
-        let i7  = Input(123);
+        let i1 = Input(123);
+        let i2 = Input(123);
+        let i3 = Input(123);
+        let i4 = Input(123);
+        let i5 = Input(123);
+        let i6 = Input(123);
+        let i7 = Input(123);
         let i_8 = Input(123);
-        let i9  = Input(123);
+        let i9 = Input(123);
         let i10 = Input(123);
         let i11 = Input(123);
         let i12 = Input(123);
 
-        let r1 = parse!{i1; a() <* b() <* c()};
-        let r2 = parse!{i2; a() <* b() <|> c()};
-        let r3 = parse!{i3; a() <|> b() <* c()};
-        let r4 = parse!{i4; a() <|> b() <|> c()};
+        let r1 = parse! {i1; a() <* b() <* c()};
+        let r2 = parse! {i2; a() <* b() <|> c()};
+        let r3 = parse! {i3; a() <|> b() <* c()};
+        let r4 = parse! {i4; a() <|> b() <|> c()};
 
-        let r5  = parse!{i5;  (a() <*  b()) <* c()};
-        let r6  = parse!{i6;  (a() <*  b()) <|> c()};
-        let r7  = parse!{i7;  (a() <|> b()) <* c_a()};
-        let r8  = parse!{i_8; (a() <|> b()) <|> c()};
-        let r9  = parse!{i9;   a() <*  (b() <* c())};
-        let r10 = parse!{i10;  a() <*  (b() <|> c())};
-        let r11 = parse!{i11;  a() <|> (b() <* c())};
-        let r12 = parse!{i12;  a() <|> (b() <|> c())};
+        let r5 = parse! {i5;  (a() <*  b()) <* c()};
+        let r6 = parse! {i6;  (a() <*  b()) <|> c()};
+        let r7 = parse! {i7;  (a() <|> b()) <* c_a()};
+        let r8 = parse! {i_8; (a() <|> b()) <|> c()};
+        let r9 = parse! {i9;   a() <*  (b() <* c())};
+        let r10 = parse! {i10;  a() <*  (b() <|> c())};
+        let r11 = parse! {i11;  a() <|> (b() <* c())};
+        let r12 = parse! {i12;  a() <|> (b() <|> c())};
 
         assert_eq!(r1, Data::Value(323, 2));
         assert_eq!(r2, Data::Value(322, 2));
@@ -1469,32 +1472,32 @@ mod test {
             Data::Value(323, 43)
         }
 
-        let i1  = Input(123);
-        let i2  = Input(123);
-        let i3  = Input(123);
-        let i4  = Input(123);
-        let i5  = Input(123);
-        let i6  = Input(123);
-        let i7  = Input(123);
+        let i1 = Input(123);
+        let i2 = Input(123);
+        let i3 = Input(123);
+        let i4 = Input(123);
+        let i5 = Input(123);
+        let i6 = Input(123);
+        let i7 = Input(123);
         let i_8 = Input(123);
-        let i9  = Input(123);
+        let i9 = Input(123);
         let i10 = Input(123);
         let i11 = Input(123);
         let i12 = Input(123);
 
-        let r1 = parse!{i1; a() <|> b() <|> c()};
-        let r2 = parse!{i2; a() <|> b() >> c_a()};
-        let r3 = parse!{i3; a() >> b() <|> c()};
-        let r4 = parse!{i4; a() >> b() >> c()};
+        let r1 = parse! {i1; a() <|> b() <|> c()};
+        let r2 = parse! {i2; a() <|> b() >> c_a()};
+        let r3 = parse! {i3; a() >> b() <|> c()};
+        let r4 = parse! {i4; a() >> b() >> c()};
 
-        let r5  = parse!{i5;  (a() <|> b()) <|> c()};
-        let r6  = parse!{i6;  (a() <|> b()) >> c_a()};
-        let r7  = parse!{i7;  (a() >>  b()) <|> c()};
-        let r8  = parse!{i_8; (a() >>  b()) >> c()};
-        let r9  = parse!{i9;   a() <|> (b() <|> c())};
-        let r10 = parse!{i10;  a() <|> (b() >> c_a())};
-        let r11 = parse!{i11;  a() >>  (b() <|> c())};
-        let r12 = parse!{i12;  a() >>  (b() >> c())};
+        let r5 = parse! {i5;  (a() <|> b()) <|> c()};
+        let r6 = parse! {i6;  (a() <|> b()) >> c_a()};
+        let r7 = parse! {i7;  (a() >>  b()) <|> c()};
+        let r8 = parse! {i_8; (a() >>  b()) >> c()};
+        let r9 = parse! {i9;   a() <|> (b() <|> c())};
+        let r10 = parse! {i10;  a() <|> (b() >> c_a())};
+        let r11 = parse! {i11;  a() >>  (b() <|> c())};
+        let r12 = parse! {i12;  a() >>  (b() >> c())};
 
         assert_eq!(r1, Data::Value(321, 2));
         assert_eq!(r2, Data::Value(323, 43));
@@ -1515,7 +1518,7 @@ mod test {
     fn alt_inline_action() {
         let i = Input(123);
 
-        let r: Data<_, ()> = parse!{i;
+        let r: Data<_, ()> = parse! {i;
             (input -> {
                 assert_eq!(input, Input(123));
 
@@ -1534,7 +1537,7 @@ mod test {
     fn then_inline_action() {
         let i = Input(123);
 
-        let r: Data<_, ()> = parse!{i;
+        let r: Data<_, ()> = parse! {i;
             (input -> {
                 assert_eq!(input, Input(123));
 
@@ -1553,7 +1556,7 @@ mod test {
     fn skip_inline_action() {
         let i = Input(123);
 
-        let r: Data<_, ()> = parse!{i;
+        let r: Data<_, ()> = parse! {i;
             (input -> {
                 assert_eq!(input, Input(123));
 
@@ -1579,7 +1582,7 @@ mod test {
 
         let i = Input(123);
 
-        let r = parse!{i; a() <|> a() <|> a() <|> a() <|> a() <|> a() <|> a() <|> a() <|> a()};
+        let r = parse! {i; a() <|> a() <|> a() <|> a() <|> a() <|> a() <|> a() <|> a() <|> a()};
 
         assert_eq!(r, Data::Value(321, 2));
     }

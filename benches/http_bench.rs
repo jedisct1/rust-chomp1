@@ -3,67 +3,77 @@ extern crate test;
 #[macro_use]
 extern crate chomp;
 
-use test::Bencher;
 use chomp::prelude::*;
+use test::Bencher;
 
 #[derive(Debug)]
 struct Request<B> {
-    method:  B,
-    uri:     B,
+    method: B,
+    uri: B,
     version: B,
 }
 
 #[derive(Debug)]
 struct Header<B> {
-    name:  B,
+    name: B,
     value: Vec<B>,
 }
 
 fn is_token(c: u8) -> bool {
     match c {
-        128...255 => false,
-        0...31    => false,
-        b'('      => false,
-        b')'      => false,
-        b'<'      => false,
-        b'>'      => false,
-        b'@'      => false,
-        b','      => false,
-        b';'      => false,
-        b':'      => false,
-        b'\\'     => false,
-        b'"'      => false,
-        b'/'      => false,
-        b'['      => false,
-        b']'      => false,
-        b'?'      => false,
-        b'='      => false,
-        b'{'      => false,
-        b'}'      => false,
-        b' '      => false,
-        _         => true,
+        128..=255 => false,
+        0..=31 => false,
+        b'(' => false,
+        b')' => false,
+        b'<' => false,
+        b'>' => false,
+        b'@' => false,
+        b',' => false,
+        b';' => false,
+        b':' => false,
+        b'\\' => false,
+        b'"' => false,
+        b'/' => false,
+        b'[' => false,
+        b']' => false,
+        b'?' => false,
+        b'=' => false,
+        b'{' => false,
+        b'}' => false,
+        b' ' => false,
+        _ => true,
     }
 }
 
-fn is_horizontal_space(c: u8) -> bool { c == b' ' || c == b'\t' }
-fn is_space(c: u8)            -> bool { c == b' ' }
-fn is_not_space(c: u8)        -> bool { c != b' ' }
-fn is_end_of_line(c: u8)      -> bool { c == b'\r' || c == b'\n' }
-fn is_http_version(c: u8)     -> bool { c >= b'0' && c <= b'9' || c == b'.' }
+fn is_horizontal_space(c: u8) -> bool {
+    c == b' ' || c == b'\t'
+}
+fn is_space(c: u8) -> bool {
+    c == b' '
+}
+fn is_not_space(c: u8) -> bool {
+    c != b' '
+}
+fn is_end_of_line(c: u8) -> bool {
+    c == b'\r' || c == b'\n'
+}
+fn is_http_version(c: u8) -> bool {
+    (b'0'..=b'9').contains(&c) || c == b'.'
+}
 
 fn end_of_line<I: U8Input>(i: I) -> SimpleResult<I, u8> {
-    parse!{i; (token(b'\r') <|> ret b'\0') >> token(b'\n')}
+    parse! {i; (token(b'\r') <|> ret b'\0') >> token(b'\n')}
 }
 
 fn http_version<I: U8Input>(i: I) -> SimpleResult<I, I::Buffer> {
-    parse!{i;
+    parse! {i;
         string(b"HTTP/");
         take_while1(is_http_version)
     }
 }
 
 fn request_line<I: U8Input>(i: I) -> SimpleResult<I, Request<I::Buffer>> {
-    parse!{i;
+    parse! {i;
         let method  = take_while1(is_token);
                       take_while1(is_space);
         let uri     = take_while1(is_not_space);
@@ -71,15 +81,15 @@ fn request_line<I: U8Input>(i: I) -> SimpleResult<I, Request<I::Buffer>> {
         let version = http_version();
 
         ret Request {
-            method:  method,
-            uri:     uri,
-            version: version,
+            method,
+            uri,
+            version,
         }
     }
 }
 
 fn message_header_line<I: U8Input>(i: I) -> SimpleResult<I, I::Buffer> {
-    parse!{i;
+    parse! {i;
                    take_while1(is_horizontal_space);
         let line = take_till(is_end_of_line);
                    end_of_line();
@@ -89,13 +99,13 @@ fn message_header_line<I: U8Input>(i: I) -> SimpleResult<I, I::Buffer> {
 }
 
 fn message_header<I: U8Input>(i: I) -> SimpleResult<I, Header<I::Buffer>> {
-    parse!{i;
+    parse! {i;
         let name  = take_while1(is_token);
                     token(b':');
         let lines = many1(message_header_line);
 
         ret Header {
-            name:  name,
+            name,
             value: lines,
         }
     }
@@ -103,7 +113,7 @@ fn message_header<I: U8Input>(i: I) -> SimpleResult<I, Header<I::Buffer>> {
 
 #[inline(never)]
 fn request<I: U8Input>(i: I) -> SimpleResult<I, (Request<I::Buffer>, Vec<Header<I::Buffer>>)> {
-    parse!{i;
+    parse! {i;
         let r = request_line();
                 end_of_line();
         let h = many(message_header);
@@ -125,9 +135,7 @@ Connection: keep-alive\r
 \r
 \r";
 
-    b.iter(|| {
-        parse_only(request, data)
-    })
+    b.iter(|| parse_only(request, data))
 }
 
 #[bench]
@@ -137,9 +145,7 @@ Host: localhost\r
 \r
 \r";
 
-    b.iter(|| {
-        parse_only(request, data)
-    })
+    b.iter(|| parse_only(request, data))
 }
 
 #[bench]
@@ -156,9 +162,7 @@ Cookie: azk=ue1-5eb08aeed9a7401c9195cb933eb7c966\r
 \r
 \r";
 
-    b.iter(|| {
-        parse_only(request, data)
-    })
+    b.iter(|| parse_only(request, data))
 }
 
 #[bench]
@@ -166,7 +170,7 @@ fn multiple_requests(b: &mut Bencher) {
     let data = include_bytes!("./data/http-requests.txt");
 
     b.iter(|| {
-        let r: Result<Vec<_>, _> = parse_only(parser!{many(request)}, data);
+        let r: Result<Vec<_>, _> = parse_only(parser! {many(request)}, data);
 
         r
     })
