@@ -1,11 +1,11 @@
 [package]
-name = "chomp"
-version = "0.3.2+master"
+name = "chomp1"
+version = "0.3.2"
 authors = ["Martin Wernstål <m4rw3r@gmail.com>"]
 description = "A fast monadic-style parser combinator designed to work on stable Rust."
-documentation = "http://m4rw3r.github.io/chomp"
-homepage = "http://github.com/m4rw3r/chomp"
-repository = "http://github.com/m4rw3r/chomp"
+documentation = "https://docs.rs/chomp"
+homepage = "http://github.com/jedisct1/rust-chomp1"
+repository = "http://github.com/jedisct1/rust-chomp1"
 readme = "README.md"
 keywords = ["parser", "parser-combinators", "parsing", "streaming"]
 license = "MIT/Apache-2.0"
@@ -45,10 +45,6 @@ default = ["std"]
 noop_error = []
 std = []
 unstable = []
-
-# Feature for travis, so that both noop_error and backtrace can be enabled simultaneously
-# without causing parse-errors in the argument parser in travis-cargo.
-noop_error_and_backtrace = ["noop_error", "backtrace"]
 
 [[bench]]
 name = "benchmark"
