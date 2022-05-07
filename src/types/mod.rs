@@ -270,9 +270,9 @@ pub trait Input: Sized {
 }
 
 impl<'a, I: Copy + PartialEq> Input for &'a [I] {
-    type Token = I;
-    type Marker = &'a [I];
     type Buffer = &'a [I];
+    type Marker = &'a [I];
+    type Token = I;
 
     #[inline]
     fn _peek(&mut self, _g: Guard) -> Option<Self::Token> {
@@ -343,9 +343,9 @@ impl<'a, I: Copy + PartialEq> Input for &'a [I] {
 }
 
 impl<'a> Input for &'a str {
-    type Token = char;
-    type Marker = &'a str;
     type Buffer = &'a str;
+    type Marker = &'a str;
+    type Token = char;
 
     #[inline]
     fn _peek(&mut self, _g: Guard) -> Option<Self::Token> {

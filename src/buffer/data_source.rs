@@ -81,6 +81,7 @@ impl<RW: io::Read + io::Write> io::Write for RWDataSource<RW> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)
     }
+
     fn flush(&mut self) -> io::Result<()> {
         self.0.flush()
     }

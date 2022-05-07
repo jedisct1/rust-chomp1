@@ -9,9 +9,9 @@ use tendril::ByteTendril;
 
 // TODO: Impl for more than byte tendril
 impl Input for ByteTendril {
-    type Token = u8;
-    type Marker = ByteTendril;
     type Buffer = ByteTendril;
+    type Marker = ByteTendril;
+    type Token = u8;
 
     #[inline]
     fn _peek(&mut self, _g: Guard) -> Option<Self::Token> {

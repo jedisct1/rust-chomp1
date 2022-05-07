@@ -182,7 +182,6 @@
 //! * `backtrace`:
 #![cfg_attr(feature = "backtrace", doc = " enabled.")]
 #![cfg_attr(not(feature = "backtrace"), doc = " disabled (default).")]
-//!
 //!    This feature enables backtraces for parse-errors, either by calling `Error::trace` or by
 //!    printing it using `fmt::Debug`.
 //!
@@ -195,14 +194,12 @@
 //! * `noop_error`:
 #![cfg_attr(not(feature = "noop_error"), doc = " disabled (default).")]
 #![cfg_attr(feature = "noop_error", doc = " enabled.")]
-//!
 //!    The built-in `chomp::parsers::Error` type is zero-sized and carry no error-information. This
 //!    increases performance somewhat.
 //!
 //! * `std`:
 #![cfg_attr(not(feature = "std"), doc = " disabled.")]
 #![cfg_attr(feature = "std", doc = " enabled (default).")]
-//!
 //!    Chomp includes all features which rely on Rust's `std` library. If this is diabled Chomp
 //!    will use the `no_std` feature, only using Rust's `core` library.
 //!

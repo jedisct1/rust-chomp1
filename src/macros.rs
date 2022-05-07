@@ -627,7 +627,7 @@ mod test {
 
             match ($lhs)(Input(i)) {
                 Data::Value(j, t) => Data::Value(j, t),
-                Data::Error(_, _) => ($rhs)(Input(i)),
+                Data::Error(..) => ($rhs)(Input(i)),
             }
         }};
     }

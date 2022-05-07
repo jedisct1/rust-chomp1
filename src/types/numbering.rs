@@ -131,9 +131,9 @@ impl<I: Input, N: Numbering<Token = I::Token>> IntoInner for InputPosition<I, N>
 }
 
 impl<I: Input, N: Numbering<Token = I::Token>> Input for InputPosition<I, N> {
-    type Token = I::Token;
-    type Marker = (N, I::Marker);
     type Buffer = I::Buffer;
+    type Marker = (N, I::Marker);
+    type Token = I::Token;
 
     #[inline]
     fn _peek(&mut self, g: Guard) -> Option<Self::Token> {

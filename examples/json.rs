@@ -77,7 +77,7 @@ fn parse_string<I: Input<Token = u8>>(i: I) -> ParseResult<I, String, Error> {
             (b'\\', b'"') => Some(c),
             (b'\\', b'\\') => Some(b'\0'), // null here because we need \\" to end
             (_, b'"') => None,
-            (_, _) => Some(c),
+            (..) => Some(c),
         })
         .bind(|i, b| any(i).map(|_| unescape(b)))
     })

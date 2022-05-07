@@ -103,7 +103,7 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
             buffer.request_space(diff);
 
             while buffer.len() < request {
-                match r#try!(buffer.fill(source)) {
+                match buffer.fill(source)? {
                     0 => break,
                     n => read += n,
                 }
@@ -183,7 +183,7 @@ impl<S: DataSource<Item = u8>, B: Buffer<u8>> io::Read for Source<S, B> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if buf.len() > self.len() {
-            r#try!(self.fill_requested(buf.len()));
+            self.fill_requested(buf.len())?;
         }
 
         (&self.buffer[..]).read(buf).map(|n| {
@@ -199,7 +199,7 @@ impl<S: DataSource<Item = u8>, B: Buffer<u8>> io::BufRead for Source<S, B> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         let cap = self.buffer.capacity();
 
-        r#try!(self.fill_requested(cap));
+        self.fill_requested(cap)?;
 
         Ok(self.buffer())
     }
@@ -215,6 +215,7 @@ impl<RW: io::Read + io::Write, B: Buffer<u8>> io::Write for Source<RWDataSource<
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.source.write(buf)
     }
+
     #[inline]
     fn flush(&mut self) -> io::Result<()> {
         self.source.flush()
@@ -243,7 +244,7 @@ where
             .state
             .contains(ParserState::INCOMPLETE | ParserState::AUTOMATIC_FILL)
         {
-            r#try!(self.fill().map_err(StreamError::IoError));
+            self.fill().map_err(StreamError::IoError)?;
         }
 
         if self.is_empty() {

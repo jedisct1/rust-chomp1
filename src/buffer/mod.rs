@@ -140,9 +140,9 @@ impl<'a, I: 'a> InputBuf<'a, I> {
 }
 
 impl<'a, I: Copy + PartialEq> Input for InputBuf<'a, I> {
-    type Token = I;
-    type Marker = &'a [I];
     type Buffer = &'a [I];
+    type Marker = &'a [I];
+    type Token = I;
 
     #[inline]
     fn _peek(&mut self, _g: Guard) -> Option<Self::Token> {
@@ -343,8 +343,6 @@ impl<I: Copy + PartialEq> Buffer<I> for FixedSizeBuffer<I> {
 
     #[inline]
     fn request_space(&mut self, items: usize) {
-        use std::ptr;
-
         assert!(self.populated >= self.used.get());
 
         // Only copy if we actually need to free the space
