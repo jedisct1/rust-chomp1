@@ -1,11 +1,10 @@
-#[cfg(all(test, feature = "unstable"))]
 extern crate compiletest_rs as compiletest;
 
-#[cfg(all(test, feature = "unstable"))]
+#[cfg(test)]
 fn run_mode(mode: &'static str) {
     use std::path::PathBuf;
 
-    let mut config = compiletest::default_config();
+    let mut config = compiletest::Config::default();
     let cfg_mode = mode.parse().ok().expect("Invalid mode");
 
     config.mode = cfg_mode;
@@ -16,7 +15,6 @@ fn run_mode(mode: &'static str) {
 }
 
 #[test]
-#[cfg(all(test, feature = "unstable"))]
 fn compile_test() {
     run_mode("compile-fail");
 }

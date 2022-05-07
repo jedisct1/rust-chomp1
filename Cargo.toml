@@ -1,16 +1,16 @@
 [package]
-name          = "chomp"
-version       = "0.3.2+master"
-authors       = ["Martin Wernstål <m4rw3r@gmail.com>"]
-description   = "A fast monadic-style parser combinator designed to work on stable Rust."
+name = "chomp"
+version = "0.3.2+master"
+authors = ["Martin Wernstål <m4rw3r@gmail.com>"]
+description = "A fast monadic-style parser combinator designed to work on stable Rust."
 documentation = "http://m4rw3r.github.io/chomp"
-homepage      = "http://github.com/m4rw3r/chomp"
-repository    = "http://github.com/m4rw3r/chomp"
-readme        = "README.md"
-keywords      = ["parser", "parser-combinators", "parsing", "streaming"]
-license       = "MIT/Apache-2.0"
-build         = "build.rs"
-edition       = "2018"
+homepage = "http://github.com/m4rw3r/chomp"
+repository = "http://github.com/m4rw3r/chomp"
+readme = "README.md"
+keywords = ["parser", "parser-combinators", "parsing", "streaming"]
+license = "MIT/Apache-2.0"
+build = "build.rs"
+edition = "2018"
 
 include = [
     "benches/**/*.rs",
@@ -24,27 +24,24 @@ include = [
 ]
 
 [dependencies]
-bitflags   = "0.8.2"
-conv       = { version = "0.3.3" }
-either     = { version = "1.1.0" }
+bitflags = "0.8.2"
+conv = { version = "0.3.3" }
+either = { version = "1.1.0" }
 debugtrace = { version = "0.1.0" }
-tendril    = { version = "0.2.2", optional = true }
+tendril = { version = "0.2.2", optional = true }
 
-# Technically a dev-dependency, but dev-dependencies are not allowed to be optional,
-# compiletest_rs fails to compile on stable and beta
-compiletest_rs = { version = "0.2.8", optional = true }
-clippy         = { version = ">0.0.1", optional = true }
+compiletest_rs = "0.7.1"
+clippy = { version = ">0.0.1", optional = true }
 
 [build-dependencies]
-rustc_version = { version = "0.2.1" }
+rustc_version = { version = "0.4.0" }
 
 [features]
-backtrace     = []
-default       = ["std"]
-noop_error    = []
-std           = []
-# Feature for running extra (compiletime fail) tests on nightly
-unstable      = ["compiletest_rs"]
+backtrace = []
+default = ["std"]
+noop_error = []
+std = []
+unstable = []
 
 # Feature for travis, so that both noop_error and backtrace can be enabled simultaneously
 # without causing parse-errors in the argument parser in travis-cargo.
