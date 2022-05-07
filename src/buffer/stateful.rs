@@ -9,15 +9,15 @@ use crate::buffer::{
 };
 
 bitflags! {
-    flags ParserState: u64 {
+    struct ParserState: u64 {
         /// The parser which was last run on the buffer did not manage to complete with the data
         /// available in the buffer.
-        const INCOMPLETE     = 1,
+        const INCOMPLETE     = 1;
         /// The buffer did not manage to read any more data from the underlying `Read`
         /// implementation.
-        const END_OF_INPUT   = 2,
+        const END_OF_INPUT   = 2;
         /// `parse()` should attempt to read more data whenever the `INCOMPLETE` flag is set.
-        const AUTOMATIC_FILL = 4,
+        const AUTOMATIC_FILL = 4;
     }
 }
 
@@ -85,7 +85,7 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
             source,
             buffer,
             request: 0,
-            state: INCOMPLETE | AUTOMATIC_FILL,
+            state: ParserState::INCOMPLETE | ParserState::AUTOMATIC_FILL,
         }
     }
 
@@ -119,12 +119,12 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
         let req = self.buffer.len() + 1;
 
         self.fill_requested(req).map(|n| {
-            self.state.remove(INCOMPLETE);
+            self.state.remove(ParserState::INCOMPLETE);
 
             if n > 0 {
-                self.state.remove(END_OF_INPUT);
+                self.state.remove(ParserState::END_OF_INPUT);
             } else {
-                self.state.insert(END_OF_INPUT);
+                self.state.insert(ParserState::END_OF_INPUT);
             }
 
             n
@@ -140,7 +140,7 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
     /// If the buffer is empty and the reader has reached the end.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.state.contains(END_OF_INPUT) && self.len() == 0
+        self.state.contains(ParserState::END_OF_INPUT) && self.len() == 0
     }
 
     /// Returns the capacity of the underlying buffer.
@@ -172,9 +172,9 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
     #[inline]
     pub fn set_autofill(&mut self, value: bool) {
         if value {
-            self.state.insert(AUTOMATIC_FILL)
+            self.state.insert(ParserState::AUTOMATIC_FILL)
         } else {
-            self.state.remove(AUTOMATIC_FILL)
+            self.state.remove(ParserState::AUTOMATIC_FILL)
         }
     }
 }
@@ -239,7 +239,10 @@ where
     {
         use crate::primitives::Primitives;
 
-        if self.state.contains(INCOMPLETE | AUTOMATIC_FILL) {
+        if self
+            .state
+            .contains(ParserState::INCOMPLETE | ParserState::AUTOMATIC_FILL)
+        {
             r#try!(self.fill().map_err(StreamError::IoError));
         }
 
@@ -249,9 +252,9 @@ where
 
         match f(InputBuf::new(&self.buffer)).into_inner() {
             (remainder, Ok(data)) => {
-                if remainder.is_incomplete() && !self.state.contains(END_OF_INPUT) {
+                if remainder.is_incomplete() && !self.state.contains(ParserState::END_OF_INPUT) {
                     // We can't accept this since we might have hit a premature end
-                    self.state.insert(INCOMPLETE);
+                    self.state.insert(ParserState::INCOMPLETE);
 
                     Err(StreamError::Retry)
                 } else {
@@ -262,10 +265,13 @@ where
                 }
             }
             (mut remainder, Err(err)) => {
-                match (remainder.is_incomplete(), self.state.contains(END_OF_INPUT)) {
+                match (
+                    remainder.is_incomplete(),
+                    self.state.contains(ParserState::END_OF_INPUT),
+                ) {
                     (true, true) => Err(StreamError::Incomplete),
                     (true, false) => {
-                        self.state.insert(INCOMPLETE);
+                        self.state.insert(ParserState::INCOMPLETE);
 
                         Err(StreamError::Retry)
                     }
