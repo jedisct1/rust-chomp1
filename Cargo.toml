@@ -40,7 +40,6 @@ rustc_version = { version = "0.4.0" }
 benchmark-simple = "0.1.7"
 
 [features]
-backtrace = []
 default = ["std"]
 noop_error = []
 std = []
