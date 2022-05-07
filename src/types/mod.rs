@@ -162,7 +162,7 @@ pub trait Input: Sized {
     /// # Example
     ///
     /// ```
-    /// use chomp::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{Input, parse_only};
     ///
     /// let r = parse_only(|i|
     ///     // Annotate the error type
@@ -183,7 +183,7 @@ pub trait Input: Sized {
     /// # Example
     ///
     /// ```
-    /// use chomp::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{Input, parse_only};
     ///
     /// let r = parse_only(|i|
     ///     // Annotate the value type
@@ -207,7 +207,7 @@ pub trait Input: Sized {
     /// # Examples
     ///
     /// ```
-    /// use chomp::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{Input, parse_only};
     ///
     /// let r = parse_only(|i| i.from_result::<_, ()>(Ok("foo")), b"test");
     ///
@@ -481,7 +481,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// # Examples
     ///
     /// ```
-    /// use chomp::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{Input, parse_only};
     ///
     /// let r = parse_only(|i| {
     ///         i.ret("data".to_owned())
@@ -497,7 +497,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// the type-hint for the error in the function signature:
     ///
     /// ```
-    /// use chomp::prelude::{Input, ParseResult, parse_only};
+    /// use chomp1::prelude::{Input, ParseResult, parse_only};
     ///
     /// fn parser<I: Input>(i: I, n: i32) -> ParseResult<I, i32, ()> {
     ///     i.ret(n + 10)
@@ -533,7 +533,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// # Example
     ///
     /// ```
-    /// use chomp::prelude::{Input, SimpleResult, parse_only};
+    /// use chomp1::prelude::{Input, SimpleResult, parse_only};
     ///
     /// fn g<I: Input>(i: I) -> SimpleResult<I, &'static str> {
     ///     i.ret("testing!")
@@ -559,7 +559,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// # Example
     ///
     /// ```
-    /// use chomp::prelude::{parse_only, any};
+    /// use chomp1::prelude::{parse_only, any};
     ///
     /// let r = parse_only(|i| any(i).map(|c| c + 12), b"abc");
     ///
@@ -581,7 +581,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// # Example
     ///
     /// ```
-    /// use chomp::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{Input, parse_only};
     ///
     /// let r = parse_only(|i| i.err::<(), _>("this is")
     ///          .map_err(|e| e.to_owned() + " an error"),
@@ -606,7 +606,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// # Example
     ///
     /// ```
-    /// use chomp::prelude::{parse_only, take_while};
+    /// use chomp1::prelude::{parse_only, take_while};
     ///
     /// let r = parse_only(|i| take_while(i, |c| c != b' ').inspect(|b| {
     ///     println!("{:?}", b); // Prints "test"

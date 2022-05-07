@@ -1,11 +1,11 @@
-use chomp;
+use chomp1;
 
 use benchmark_simple::*;
 
 use std::iter;
 
-use chomp::buffer::InputBuf;
-use chomp::prelude::*;
+use chomp1::buffer::InputBuf;
+use chomp1::prelude::*;
 
 macro_rules! function_name {
     () => {{

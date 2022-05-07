@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use chomp::ascii::{float, is_whitespace};
-use chomp::combinators::{or, sep_by};
-use chomp::parsers::Error as ChompError;
-use chomp::parsers::{any, scan, skip_while, string, token};
-use chomp::types::{Buffer, Input, ParseResult};
+use chomp1::ascii::{float, is_whitespace};
+use chomp1::combinators::{or, sep_by};
+use chomp1::parsers::Error as ChompError;
+use chomp1::parsers::{any, scan, skip_while, string, token};
+use chomp1::types::{Buffer, Input, ParseResult};
 
 pub type Error = ChompError<u8>;
 
@@ -118,8 +118,8 @@ fn parse_array<I: Input<Token = u8>>(i: I) -> ParseResult<I, Vec<Value>, Error> 
     token(i, b'[').then(|i| sep_by(i, parse, separator).bind(|i, v| token(i, b']').map(|_| v)))
 }
 
-use chomp::combinators::many;
-use chomp::parse_only;
+use chomp1::combinators::many;
+use chomp1::parse_only;
 
 fn main() {
     let t: Vec<_> = parse_only(

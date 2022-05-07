@@ -73,8 +73,8 @@ pub fn is_alphanumeric(c: u8) -> bool {
 /// # Example
 ///
 /// ```
-/// use chomp::parse_only;
-/// use chomp::ascii::skip_whitespace;
+/// use chomp1::parse_only;
+/// use chomp1::ascii::skip_whitespace;
 ///
 /// assert_eq!(parse_only(skip_whitespace, b" \t "), Ok(()));
 /// ```
@@ -92,8 +92,8 @@ pub fn skip_whitespace<I: Input<Token = u8>>(i: I) -> SimpleResult<I, ()> {
 /// # Example
 ///
 /// ```
-/// use chomp::parse_only;
-/// use chomp::ascii::digit;
+/// use chomp1::parse_only;
+/// use chomp1::ascii::digit;
 ///
 /// assert_eq!(parse_only(digit, b"1"), Ok(b'1'));
 /// ```
@@ -112,8 +112,8 @@ pub fn digit<I: Input<Token = u8>>(i: I) -> SimpleResult<I, u8> {
 /// # Example
 ///
 /// ```
-/// use chomp::parse_only;
-/// use chomp::ascii::{decimal, signed};
+/// use chomp1::parse_only;
+/// use chomp1::ascii::{decimal, signed};
 ///
 /// let r: Result<i16, _> = parse_only(|i| signed(i, decimal), b"-123");
 ///
@@ -145,8 +145,8 @@ where
 /// # Example
 ///
 /// ```
-/// use chomp::parse_only;
-/// use chomp::ascii::decimal;
+/// use chomp1::parse_only;
+/// use chomp1::ascii::decimal;
 ///
 /// let r = parse_only(decimal::<_, u8>, b"123");
 ///
@@ -344,8 +344,8 @@ pub fn match_float<I: Input<Token = u8>>(i: I) -> SimpleResult<I, I::Buffer> {
 /// `&[u8]` and will not require an allocation.
 ///
 /// ```
-/// use chomp::parse_only;
-/// use chomp::ascii::float;
+/// use chomp1::parse_only;
+/// use chomp1::ascii::float;
 ///
 /// assert_eq!(parse_only(float, &b"3.14159265359"[..]), Ok(3.14159265359));
 /// ```
@@ -371,8 +371,8 @@ fn compare_ci(a: u8, b: u8) -> bool {
 /// incomplete.
 ///
 /// ```
-/// use chomp::prelude::parse_only;
-/// use chomp::ascii::string_ci;
+/// use chomp1::prelude::parse_only;
+/// use chomp1::ascii::string_ci;
 ///
 /// assert_eq!(parse_only(|i| string_ci(i, b"abc"), b"abcdef"), Ok(&b"abc"[..]));
 /// assert_eq!(parse_only(|i| string_ci(i, b"abc"), b"aBCdef"), Ok(&b"aBC"[..]));

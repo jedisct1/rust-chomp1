@@ -1,7 +1,7 @@
 use benchmark_simple::*;
 
-use chomp::prelude::*;
-use chomp::{__parse_internal, __parse_internal_or, parse, parser};
+use chomp1::prelude::*;
+use chomp1::{__parse_internal, __parse_internal_or, parse, parser};
 
 macro_rules! function_name {
     () => {{

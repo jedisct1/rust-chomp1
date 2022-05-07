@@ -80,9 +80,9 @@ For more documentation, see the rust-doc output.
 
 ```rust
 #[macro_use]
-extern crate chomp;
+extern crate chomp1;
 
-use chomp::prelude::*;
+use chomp1::prelude::*;
 
 #[derive(Debug, Eq, PartialEq)]
 struct Name<B: Buffer> {

@@ -18,7 +18,7 @@ pub use debugtrace::StackFrame;
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, any};
+/// use chomp1::prelude::{parse_only, any};
 ///
 /// assert_eq!(parse_only(any, b"abc"), Ok(b'a'));
 /// ```
@@ -36,7 +36,7 @@ pub fn any<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, satisfy};
+/// use chomp1::prelude::{parse_only, satisfy};
 ///
 /// assert_eq!(parse_only(|i| satisfy(i, |c| c == b'a'), b"abc"), Ok(b'a'));
 /// ```
@@ -60,7 +60,7 @@ where
 /// ```
 /// use std::ascii::AsciiExt;
 ///
-/// use chomp::prelude::{parse_only, satisfy_with};
+/// use chomp1::prelude::{parse_only, satisfy_with};
 ///
 /// let r = parse_only(
 ///     |i| satisfy_with(i, |c| AsciiExt::to_ascii_uppercase(&c), |c| c == b'T'),
@@ -93,7 +93,7 @@ where
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, token};
+/// use chomp1::prelude::{parse_only, token};
 ///
 /// assert_eq!(parse_only(|i| token(i, b'a'), b"abc"), Ok(b'a'));
 /// ```
@@ -113,7 +113,7 @@ pub fn token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, not_token};
+/// use chomp1::prelude::{parse_only, not_token};
 ///
 /// assert_eq!(parse_only(|i| not_token(i, b'b'), b"abc"), Ok(b'a'));
 /// ```
@@ -134,7 +134,7 @@ pub fn not_token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
 /// This parser is never considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, peek};
+/// use chomp1::prelude::{parse_only, peek};
 ///
 /// assert_eq!(parse_only(peek, b"abc"), Ok(Some(b'a')));
 ///
@@ -152,7 +152,7 @@ pub fn peek<I: Input>(mut i: I) -> SimpleResult<I, Option<I::Token>> {
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, peek_next};
+/// use chomp1::prelude::{parse_only, peek_next};
 ///
 /// assert_eq!(parse_only(peek_next, b"abc"), Ok(b'a'));
 /// ```
@@ -169,7 +169,7 @@ pub fn peek_next<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
 /// If the buffer length is less than ``num`` this parser is considered incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take};
+/// use chomp1::prelude::{parse_only, take};
 ///
 /// assert_eq!(parse_only(|i| take(i, 3), b"abcd"), Ok(&b"abc"[..]));
 /// ```
@@ -188,7 +188,7 @@ pub fn take<I: Input>(mut i: I, num: usize) -> SimpleResult<I, I::Buffer> {
 /// more input which needs to be matched.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take_while};
+/// use chomp1::prelude::{parse_only, take_while};
 ///
 /// let r = parse_only(|i| take_while(i, |c| c == b'a' || c == b'b'), b"abcdcba");
 ///
@@ -198,7 +198,7 @@ pub fn take<I: Input>(mut i: I, num: usize) -> SimpleResult<I, I::Buffer> {
 /// Without managing to match anything:
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take_while};
+/// use chomp1::prelude::{parse_only, take_while};
 ///
 /// let r = parse_only(|i| take_while(i, |c| c == b'z'), b"abcdcba");
 ///
@@ -221,7 +221,7 @@ where
 /// more input which needs to be matched. If zero items were matched an error will be returned.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take_while1};
+/// use chomp1::prelude::{parse_only, take_while1};
 ///
 /// let r = parse_only(|i| take_while1(i, |c| c == b'a' || c == b'b'), b"abcdcba");
 ///
@@ -244,7 +244,7 @@ where
 /// Skips over tokens in the input until `f` returns false.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, skip_while};
+/// use chomp1::prelude::{parse_only, skip_while};
 ///
 /// assert_eq!(parse_only(|i| skip_while(i, |c| c == b'a'), &b"aaabc"[..]), Ok(()));
 /// ```
@@ -262,8 +262,8 @@ where
 /// `f` does not succeed on it.
 ///
 /// ```
-/// use chomp::parse_only;
-/// use chomp::parsers::{Error, skip_while1};
+/// use chomp1::parse_only;
+/// use chomp1::parsers::{Error, skip_while1};
 ///
 /// assert_eq!(parse_only(|i| skip_while1(i, |c| c == b'a'), &b"aaabc"[..]), Ok(()));
 /// assert_eq!(parse_only(|i| skip_while1(i, |c| c == b'a'), &b"bbc"[..]), Err((&b"bbc"[..], Error::unexpected())));
@@ -283,7 +283,7 @@ where
 /// more input which needs to be matched.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take_till};
+/// use chomp1::prelude::{parse_only, take_till};
 ///
 /// let r = parse_only(|i| take_till(i, |c| c == b'd'), b"abcdef");
 ///
@@ -317,7 +317,7 @@ where
 /// the predicate returns `None`.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, scan};
+/// use chomp1::prelude::{parse_only, scan};
 ///
 /// let p = |i| scan(i, false, |s, c| match (s, c) {
 ///     (true, b'/') => None,
@@ -350,7 +350,7 @@ where
 /// Like `scan` but generalized to return the final state of the scanner.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, run_scanner};
+/// use chomp1::prelude::{parse_only, run_scanner};
 ///
 /// let p = |i| run_scanner(i, 0, |s, c| match (s, c) {
 ///     (b'*', b'/') => None,
@@ -388,7 +388,7 @@ where
 /// Matches the remainder of the buffer and returns it, always succeeds.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take_remainder};
+/// use chomp1::prelude::{parse_only, take_remainder};
 ///
 /// assert_eq!(parse_only(take_remainder, b"abcd"), Ok(&b"abcd"[..]));
 /// ```
@@ -405,7 +405,7 @@ pub fn take_remainder<I: Input>(mut i: I) -> SimpleResult<I, I::Buffer> {
 /// incomplete.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, string};
+/// use chomp1::prelude::{parse_only, string};
 ///
 /// assert_eq!(parse_only(|i| string(i, b"abc"), b"abcdef"), Ok(&b"abc"[..]));
 /// ```
@@ -439,7 +439,7 @@ pub fn string<T: Copy + PartialEq, I: Input<Token = T>>(
 /// Matches the end of the input.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, token, eof};
+/// use chomp1::prelude::{parse_only, token, eof};
 ///
 /// let r = parse_only(|i| token(i, b'a').then(eof), b"a");
 ///

@@ -1,9 +1,9 @@
 // error-pattern:error[E0271]: type mismatch resolving `<u64 as conv::ValueFrom<i8>>::Err == conv::errors::NoError`
 
-extern crate chomp;
+extern crate chomp1;
 
-use chomp::prelude::{U8Input, SimpleResult, parse_only};
-use chomp::ascii::{signed, decimal};
+use chomp1::prelude::{U8Input, SimpleResult, parse_only};
+use chomp1::ascii::{signed, decimal};
 
 // Should not be possible to use unsigned integers with signed
 fn parser<I: U8Input>(i: I) -> SimpleResult<I, u64> {

@@ -3,14 +3,14 @@
 //! # Examples
 //!
 //! ```
-//! # #[macro_use] extern crate chomp;
+//! # #[macro_use] extern crate chomp1;
 //! # fn main() {
 //! use std::fs::File;
 //!
-//! use chomp::buffer;
-//! use chomp::buffer::Stream;
-//! use chomp::prelude::{token, take_while, take_while1};
-//! use chomp::ascii::is_whitespace;
+//! use chomp1::buffer;
+//! use chomp1::buffer::Stream;
+//! use chomp1::prelude::{token, take_while, take_while1};
+//! use chomp1::ascii::is_whitespace;
 //!
 //! let f = File::open("./README.md").unwrap();
 //!

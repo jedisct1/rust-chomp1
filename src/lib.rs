@@ -14,9 +14,9 @@
 //! # Example
 //!
 //! ```
-//! # #[macro_use] extern crate chomp;
+//! # #[macro_use] extern crate chomp1;
 //! # fn main() {
-//! use chomp::prelude::*;
+//! use chomp1::prelude::*;
 //!
 //! #[derive(Debug, Eq, PartialEq)]
 //! struct Name<B: Buffer> {
@@ -90,9 +90,9 @@
 //! used in the `parse!` macro:
 //!
 //! ```
-//! # #[macro_use] extern crate chomp;
+//! # #[macro_use] extern crate chomp1;
 //! # fn main() {
-//! # use chomp::prelude::*;
+//! # use chomp1::prelude::*;
 //! # let r = parse_only(parser!{
 //! satisfy(|c| {
 //!     match c {
@@ -141,8 +141,8 @@
 //! A Chomp parser with a similar structure looks like this:
 //!
 //! ```
-//! # #[macro_use] extern crate chomp;
-//! # use chomp::prelude::*;
+//! # #[macro_use] extern crate chomp1;
+//! # use chomp1::prelude::*;
 //! fn f<I: U8Input>(i: I) -> SimpleResult<I, (u8, u8, u8)> {
 //!     parse!{i;
 //!         let a = digit();
@@ -185,7 +185,7 @@
 //!    This feature enables backtraces for parse-errors, either by calling `Error::trace` or by
 //!    printing it using `fmt::Debug`.
 //!
-//!    This incurs a performance-hit every time a `chomp::parsers` parser fails since a backtrace
+//!    This incurs a performance-hit every time a `chomp1::parsers` parser fails since a backtrace
 //!    must be collected.
 //!
 //!    In the `dev` and `test` profiles backtraces will always be enabled. This does not incur any
@@ -194,7 +194,7 @@
 //! * `noop_error`:
 #![cfg_attr(not(feature = "noop_error"), doc = " disabled (default).")]
 #![cfg_attr(feature = "noop_error", doc = " enabled.")]
-//!    The built-in `chomp::parsers::Error` type is zero-sized and carry no error-information. This
+//!    The built-in `chomp1::parsers::Error` type is zero-sized and carry no error-information. This
 //!    increases performance somewhat.
 //!
 //! * `std`:

@@ -6,9 +6,9 @@
 //! parser. `usize` is used to specify an exact number of iterations:
 //!
 //! ```
-//! use chomp::combinators::bounded::many;
-//! use chomp::parse_only;
-//! use chomp::parsers::any;
+//! use chomp1::combinators::bounded::many;
+//! use chomp1::parse_only;
+//! use chomp1::parsers::any;
 //!
 //! // Read any character 2 or 3 times
 //! let r: Result<Vec<_>, _> = parse_only(|i| many(i, 2..4, any), b"abcd");

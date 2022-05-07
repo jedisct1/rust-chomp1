@@ -13,8 +13,8 @@ where
 /// Runs the given parser on the supplied finite input.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, Error};
-/// use chomp::ascii::decimal;
+/// use chomp1::prelude::{parse_only, Error};
+/// use chomp1::ascii::decimal;
 ///
 /// assert_eq!(parse_only(decimal, b"123foobar"), Ok(123u32));
 ///
@@ -27,9 +27,9 @@ where
 /// discarded. To force a parser to consume all its input, use `eof` at the end like this:
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp::prelude::{U8Input, Error, SimpleResult, parse_only, string, eof};
+/// use chomp1::prelude::{U8Input, Error, SimpleResult, parse_only, string, eof};
 ///
 /// fn my_parser<I: U8Input>(i: I) -> SimpleResult<I, I::Buffer> {
 ///     parse!{i;

@@ -9,14 +9,14 @@
 //! ```
 
 #[macro_use]
-extern crate chomp;
+extern crate chomp1;
 
 use std::env;
 use std::fs::File;
 
-use chomp::prelude::*;
+use chomp1::prelude::*;
 
-use chomp::buffer::{Source, Stream, StreamError};
+use chomp1::buffer::{Source, Stream, StreamError};
 
 #[derive(Debug)]
 struct Request<B> {

@@ -16,7 +16,7 @@ use crate::primitives::{IntoInner, Primitives};
 /// Applies the parser `p` exactly `num` times collecting all items into `T: FromIterator`.
 ///
 /// ```
-/// use chomp::prelude::*;
+/// use chomp1::prelude::*;
 ///
 /// fn parse<I: U8Input>(i: I) -> SimpleResult<I, Vec<u8>> {
 ///     count(i, 2, |i| token(i, b'a'))
@@ -44,7 +44,7 @@ where
 /// Incomplete state is propagated. Backtracks on error.
 ///
 /// ```
-/// use chomp::prelude::{U8Input, SimpleResult, parse_only, option, token};
+/// use chomp1::prelude::{U8Input, SimpleResult, parse_only, option, token};
 ///
 /// fn f<I: U8Input>(i: I) -> SimpleResult<I, u8> {
 ///     option(i, |i| token(i, b'a'), b'd')
@@ -75,7 +75,7 @@ where
 /// and its alternation operator (`<|>`).
 ///
 /// ```
-/// use chomp::prelude::{Error, parse_only, or, token};
+/// use chomp1::prelude::{Error, parse_only, or, token};
 ///
 /// let p = |i| or(i,
 ///             |i| token(i, b'a'),
@@ -105,7 +105,7 @@ where
 /// NOTE: If both parsers have the same return-type, use `or` instead.
 ///
 /// ```
-/// use chomp::prelude::{Error, parse_only, either, token, Left, Right};
+/// use chomp1::prelude::{Error, parse_only, either, token, Left, Right};
 ///
 /// let p = |i| either(i, |i| token(i, b'a'), |i| token(i, b'b'));
 ///
@@ -138,9 +138,9 @@ where
 /// yet.
 ///
 /// ```
-/// use chomp::combinators::choice;
-/// use chomp::parsers::token;
-/// use chomp::parse_only;
+/// use chomp1::combinators::choice;
+/// use chomp1::parsers::token;
+/// use chomp1::parse_only;
 ///
 /// let v: Vec<Box<FnMut(_) -> _>> = vec![
 ///     Box::new(|i| token(i, b'b')),
@@ -150,9 +150,9 @@ where
 /// ```
 ///
 /// ```
-/// use chomp::combinators::choice;
-/// use chomp::parsers::{Error, token};
-/// use chomp::parse_only;
+/// use chomp1::combinators::choice;
+/// use chomp1::parsers::{Error, token};
+/// use chomp1::parse_only;
 ///
 /// let v: Vec<Box<FnMut(_) -> _>> = vec![
 ///     Box::new(|i| token(i, b'b')),
@@ -193,7 +193,7 @@ where
 /// Note: Allocates data.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, token, many, take_while1};
+/// use chomp1::prelude::{parse_only, token, many, take_while1};
 ///
 /// let r: Result<Vec<_>, _> = parse_only(|i| many(i,
 ///     |i| take_while1(i, |c| c != b',' && c != b' ')
@@ -221,7 +221,7 @@ where
 /// Note: Allocates data.
 ///
 /// ```
-/// use chomp::prelude::{Error, parse_only, token, many1, take_while1};
+/// use chomp1::prelude::{Error, parse_only, token, many1, take_while1};
 ///
 /// let p = |i| many1(i, |i| take_while1(i, |c| c != b',' && c != b' ')
 ///             .bind(|i, c| token(i, b',')
@@ -248,8 +248,8 @@ where
 /// Incomplete will be propagated from `R` if end of input has not been read.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, sep_by, token};
-/// use chomp::ascii::decimal;
+/// use chomp1::prelude::{parse_only, sep_by, token};
+/// use chomp1::ascii::decimal;
 ///
 /// let r: Result<Vec<u8>, _> = parse_only(|i| sep_by(i, decimal, |i| token(i, b';')), b"91;03;20");
 ///
@@ -275,8 +275,8 @@ where
 /// Incomplete will be propagated from `R` if end of input has not been read.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, sep_by1, token};
-/// use chomp::ascii::decimal;
+/// use chomp1::prelude::{parse_only, sep_by1, token};
+/// use chomp1::ascii::decimal;
 ///
 /// let r: Result<Vec<u8>, _> = parse_only(|i| sep_by1(i, decimal, |i| token(i, b';')), b"91;03;20");
 ///
@@ -301,7 +301,7 @@ where
 /// Errors from `R` are propagated.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, many_till, any, token};
+/// use chomp1::prelude::{parse_only, many_till, any, token};
 ///
 /// let r: Result<Vec<u8>, _> = parse_only(|i| many_till(i, any, |i| token(i, b';')), b"abc;def");
 ///
@@ -326,7 +326,7 @@ where
 /// `many` allocates a separate data structure to contain the data before proceeding.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, skip_many, token};
+/// use chomp1::prelude::{parse_only, skip_many, token};
 ///
 /// let r = parse_only(|i| skip_many(i, |i| token(i, b'a')).then(|i| token(i, b'b')), b"aaaabc");
 ///
@@ -349,7 +349,7 @@ where
 /// `many1` allocates a separate data structure to contain the data before proceeding.
 ///
 /// ```
-/// use chomp::prelude::{Error, parse_only, skip_many1, token};
+/// use chomp1::prelude::{Error, parse_only, skip_many1, token};
 ///
 /// let p = |i| skip_many1(i, |i| token(i, b'a')).bind(|i, _| token(i, b'b'));
 ///
@@ -369,8 +369,8 @@ where
 /// Returns the result of the given parser as well as the slice which matched it.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, matched_by};
-/// use chomp::ascii::decimal;
+/// use chomp1::prelude::{parse_only, matched_by};
+/// use chomp1::ascii::decimal;
 ///
 /// assert_eq!(parse_only(|i| matched_by(i, decimal), b"123"), Ok((&b"123"[..], 123u32)));
 /// ```
@@ -394,8 +394,8 @@ where
 /// Applies the parser `F` without consuming any input.
 ///
 /// ```
-/// use chomp::prelude::{parse_only, take};
-/// use chomp::combinators::look_ahead;
+/// use chomp1::prelude::{parse_only, take};
+/// use chomp1::combinators::look_ahead;
 ///
 /// let p = |i| look_ahead(i, |i| take(i, 4)).bind(|i, t| take(i, 7).map(|u| (t, u)));
 ///

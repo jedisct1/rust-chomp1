@@ -1,13 +1,13 @@
 //! Module containing tools for working with position aware parsers.
 //!
 //! ```
-//! # #[macro_use] extern crate chomp;
+//! # #[macro_use] extern crate chomp1;
 //! # fn main() {
-//! use chomp::types::{Input, ParseResult};
-//! use chomp::types::numbering::{InputPosition, LineNumber, Numbering};
-//! use chomp::combinators::many;
-//! use chomp::parsers::{Error, any, take_while1, string};
-//! use chomp::run_parser;
+//! use chomp1::types::{Input, ParseResult};
+//! use chomp1::types::numbering::{InputPosition, LineNumber, Numbering};
+//! use chomp1::combinators::many;
+//! use chomp1::parsers::{Error, any, take_while1, string};
+//! use chomp1::run_parser;
 //!
 //! // Let's count some lines
 //! let i = InputPosition::new(&b"test a\ntest b\n\ntest c\n"[..], LineNumber::new());

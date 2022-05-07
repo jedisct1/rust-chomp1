@@ -1,9 +1,9 @@
 /// Macro emulating `do`-notation for the parser monad, automatically threading the linear type.
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::prelude::*;
+/// # use chomp1::prelude::*;
 /// # fn parser<I: Input>(i: I, _s: &str) -> ParseResult<I, (), ()> { i.ret(()) }
 /// # fn other_parser<I: Input>(i: I) -> ParseResult<I, u8, ()> { i.ret(23) }
 /// # fn do_something(_i: u8) -> u32 { 23 }
@@ -30,9 +30,9 @@
 /// Parsing into a struct using the basic provided parsers:
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp::prelude::{Buffer, Error, Input, ParseResult, parse_only, take_while1, token};
+/// use chomp1::prelude::{Buffer, Error, Input, ParseResult, parse_only, take_while1, token};
 ///
 /// #[derive(Debug, Eq, PartialEq)]
 /// struct Name<B: Buffer> {
@@ -64,10 +64,10 @@
 /// operator to make it more succint:
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp::prelude::{U8Input, SimpleResult, parse_only, string, token};
-/// use chomp::ascii::decimal;
+/// use chomp1::prelude::{U8Input, SimpleResult, parse_only, string, token};
+/// use chomp1::ascii::decimal;
 ///
 /// fn parse_ip<I: U8Input>(i: I) -> SimpleResult<I, (u8, u8, u8, u8)> {
 ///     parse!{i;
@@ -88,9 +88,9 @@
 /// Parsing a log-level using the `<|>` alternation (or) operator:
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp::prelude::{parse_only, string};
+/// use chomp1::prelude::{parse_only, string};
 ///
 /// #[derive(Debug, Eq, PartialEq)]
 /// enum Log {
@@ -153,10 +153,10 @@
 /// or by an expression which ends the block.
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::ascii::decimal;
-/// # use chomp::prelude::{parse_only, U8Input, token, SimpleResult};
+/// # use chomp1::ascii::decimal;
+/// # use chomp1::prelude::{parse_only, U8Input, token, SimpleResult};
 /// # fn my_parser<I: U8Input>(i: I) -> SimpleResult<I, u32> {
 /// parse!{i;
 ///     token(b':');
@@ -197,9 +197,9 @@
 /// by a parameter list within parentheses. The parentheses are mandatory.
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::prelude::{parse_only, U8Input, SimpleResult};
+/// # use chomp1::prelude::{parse_only, U8Input, SimpleResult};
 /// # fn my_parser<I: U8Input>(i: I) -> SimpleResult<I, &'static str> {
 /// fn do_it<'a, I: U8Input>(i: I, s: &'a str) -> SimpleResult<I, &'a str> { i.ret(s) }
 ///
@@ -217,9 +217,9 @@
 /// error. The `ret` and `err` keywords provide this functionality inside of `parse!`-expressions.
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::prelude::{parse_only, Input};
+/// # use chomp1::prelude::{parse_only, Input};
 /// let r: Result<_, (_, ())> = parse_only(
 ///     parser!{ ret "some success data" },
 ///     b"input data"
@@ -235,9 +235,9 @@
 /// information inline:
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::prelude::{parse_only, Input};
+/// # use chomp1::prelude::{parse_only, Input};
 /// let r = parse_only(parser!{ err @ u32, _: "some error data" }, b"input data");
 ///
 /// assert_eq!(r, Err((&b"input data"[..], "some error data")));
@@ -254,9 +254,9 @@
 /// requires some plain Rust logic:
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::prelude::{parse_only, Input, ParseResult};
+/// # use chomp1::prelude::{parse_only, Input, ParseResult};
 /// fn other_parser<I: Input>(i: I) -> ParseResult<I, &'static str, &'static str> {
 ///     i.ret("Success!")
 /// }
@@ -289,9 +289,9 @@
 ///    skipping its result.
 ///
 ///    ```
-///    # #[macro_use] extern crate chomp;
+///    # #[macro_use] extern crate chomp1;
 ///    # fn main() {
-///    # use chomp::ascii::decimal; use chomp::prelude::{parse_only, token};
+///    # use chomp1::ascii::decimal; use chomp1::prelude::{parse_only, token};
 ///    let p = parser!{ decimal() <* token(b';') };
 ///
 ///    assert_eq!(parse_only(p, b"123;"), Ok(123u32));
@@ -304,9 +304,9 @@
 ///    with the parser on the right. Is equivalent to stacking `or` combinators.
 ///
 ///    ```
-///    # #[macro_use] extern crate chomp;
+///    # #[macro_use] extern crate chomp1;
 ///    # fn main() {
-///    # use chomp::prelude::{parse_only, token};
+///    # use chomp1::prelude::{parse_only, token};
 ///    let p = parser!{ token(b'a') <|> token(b'b') };
 ///
 ///    assert_eq!(parse_only(p, b"b"), Ok(b'b'));
@@ -319,9 +319,9 @@
 ///    the right.
 ///
 ///    ```
-///    # #[macro_use] extern crate chomp;
+///    # #[macro_use] extern crate chomp1;
 ///    # fn main() {
-///    # use chomp::prelude::{parse_only, token};
+///    # use chomp1::prelude::{parse_only, token};
 ///    let p = parser!{ token(b'a') >> token(b';') };
 ///
 ///    assert_eq!(parse_only(p, b"a;"), Ok(b';'));
@@ -336,9 +336,9 @@
 /// require `;` or `,` to be terminated at the same nesting level):
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// # use chomp::prelude::{Input, parse_only};
+/// # use chomp1::prelude::{Input, parse_only};
 /// let p = parser!{ (i -> Input::err(i, "foo")) <|> (i -> Input::ret(i, "bar")) };
 ///
 /// assert_eq!(parse_only(p, b"a;"), Ok("bar"));
@@ -378,7 +378,7 @@
 /// ```ignore
 /// #![feature(trace_macros)]
 ///
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
 /// trace_macros!(true);
 /// let p = parser!{ decimal() <* token(b';') };
@@ -603,9 +603,9 @@ macro_rules! __parse_internal {
 /// Macro wrapping an invocation to ``parse!`` in a closure, useful for creating parsers inline.
 ///
 /// ```
-/// # #[macro_use] extern crate chomp;
+/// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp::prelude::{parse_only, string};
+/// use chomp1::prelude::{parse_only, string};
 ///
 /// let r = parser!{ string(b"ab") <|> string(b"ac") };
 ///

@@ -3,9 +3,9 @@ use benchmark_simple::*;
 use std::str;
 use std::str::FromStr;
 
-use chomp::ascii;
-use chomp::primitives::IntoInner;
-use chomp::types::Buffer;
+use chomp1::ascii;
+use chomp1::primitives::IntoInner;
+use chomp1::types::Buffer;
 
 macro_rules! function_name {
     () => {{
