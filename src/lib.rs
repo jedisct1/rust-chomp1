@@ -282,6 +282,7 @@ pub mod prelude {
     pub use crate::parsers::{Error, SimpleResult};
     pub use crate::types::{Buffer, Input, ParseResult, U8Input};
 
+    pub use crate::macros::*;
     pub use crate::parse_only;
     pub use crate::parse_only_str;
     pub use either::*;
