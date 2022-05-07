@@ -1,7 +1,5 @@
 //! Basic parsers.
 
-
-
 use crate::primitives::Primitives;
 use crate::types::{Buffer, Input, ParseResult};
 

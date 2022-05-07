@@ -28,13 +28,16 @@ bitflags = "0.8.2"
 conv = { version = "0.3.3" }
 either = { version = "1.1.0" }
 debugtrace = { version = "0.1.0" }
-tendril = { version = "0.2.2", optional = true }
+tendril = { version = "0.4.3", optional = true }
 
 compiletest_rs = "0.7.1"
 clippy = { version = ">0.0.1", optional = true }
 
 [build-dependencies]
 rustc_version = { version = "0.4.0" }
+
+[dev-dependencies]
+benchmark-simple = "0.1.7"
 
 [features]
 backtrace = []
@@ -46,3 +49,7 @@ unstable = []
 # Feature for travis, so that both noop_error and backtrace can be enabled simultaneously
 # without causing parse-errors in the argument parser in travis-cargo.
 noop_error_and_backtrace = ["noop_error", "backtrace"]
+
+[[bench]]
+name = "benchmark"
+harness = false

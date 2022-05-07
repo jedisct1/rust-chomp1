@@ -1,10 +1,21 @@
-#![feature(test)]
-extern crate test;
-#[macro_use]
-extern crate chomp;
+use benchmark_simple::*;
 
 use chomp::prelude::*;
-use test::Bencher;
+use chomp::{__parse_internal, __parse_internal_or, parse, parser};
+
+macro_rules! function_name {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        match &name[..name.len() - 3].rfind(':') {
+            Some(pos) => &name[pos + 1..name.len() - 3],
+            None => &name[..name.len() - 3],
+        }
+    }};
+}
 
 #[derive(Debug)]
 struct Request<B> {
@@ -123,8 +134,14 @@ fn request<I: U8Input>(i: I) -> SimpleResult<I, (Request<I::Buffer>, Vec<Header<
     }
 }
 
-#[bench]
-fn single_request(b: &mut Bencher) {
+pub fn bench() {
+    single_request();
+    single_request_large();
+    single_request_minimal();
+    multiple_requests();
+}
+
+fn single_request() {
     let data = b"GET / HTTP/1.1\r
 Host: www.reddit.com\r
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:15.0) Gecko/20100101 Firefox/15.0.1\r
@@ -135,21 +152,21 @@ Connection: keep-alive\r
 \r
 \r";
 
-    b.iter(|| parse_only(request, data))
+    let res = Bench::new().run(&Options::default(), || parse_only(request, data));
+    println!("{}: {}", function_name!(), res);
 }
 
-#[bench]
-fn single_request_minimal(b: &mut Bencher) {
+fn single_request_minimal() {
     let data = b"GET / HTTP/1.1\r
 Host: localhost\r
 \r
 \r";
 
-    b.iter(|| parse_only(request, data))
+    let res = Bench::new().run(&Options::default(), || parse_only(request, data));
+    println!("{}: {}", function_name!(), res);
 }
 
-#[bench]
-fn single_request_large(b: &mut Bencher) {
+fn single_request_large() {
     let data = b"GET /i.gif?e=eyJhdiI6NjIzNTcsImF0Ijo1LCJjbSI6MTE2MzUxLCJjaCI6Nzk4NCwiY3IiOjMzNzAxNSwiZGkiOiI4NmI2Y2UzYWM5NDM0MjhkOTk2ZTg4MjYwZDE5ZTE1YyIsImRtIjoxLCJmYyI6NDE2MTI4LCJmbCI6MjEwNDY0LCJrdyI6Ii1yZWRkaXQuY29tIiwibWsiOiItcmVkZGl0LmNvbSIsIm53Ijo1MTQ2LCJwYyI6MCwicHIiOjIwMzYyLCJydCI6MSwicmYiOiJodHRwOi8vd3d3LnJlZGRpdC5jb20vIiwic3QiOjI0OTUwLCJ1ayI6InVlMS01ZWIwOGFlZWQ5YTc0MDFjOTE5NWNiOTMzZWI3Yzk2NiIsInRzIjoxNDAwODYyNTkzNjQ1fQ&s=lwlbFf2Uywt7zVBFRj_qXXu7msY HTTP/1.1\r
 Host: engine.adzerk.net\r
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:15.0) Gecko/20100101 Firefox/15.0.1\r
@@ -162,16 +179,16 @@ Cookie: azk=ue1-5eb08aeed9a7401c9195cb933eb7c966\r
 \r
 \r";
 
-    b.iter(|| parse_only(request, data))
+    let res = Bench::new().run(&Options::default(), || parse_only(request, data));
+    println!("{}: {}", function_name!(), res);
 }
 
-#[bench]
-fn multiple_requests(b: &mut Bencher) {
+fn multiple_requests() {
     let data = include_bytes!("./data/http-requests.txt");
 
-    b.iter(|| {
+    let res = Bench::new().run(&Options::default(), || {
         let r: Result<Vec<_>, _> = parse_only(parser! {many(request)}, data);
-
         r
-    })
+    });
+    println!("{}: {}", function_name!(), res);
 }

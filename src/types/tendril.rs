@@ -3,9 +3,9 @@
 
 use std::mem;
 
-use primitives::Guard;
+use crate::primitives::Guard;
+use crate::types::{Buffer, Input};
 use tendril::ByteTendril;
-use types::{Buffer, Input};
 
 // TODO: Impl for more than byte tendril
 impl Input for ByteTendril {
@@ -110,12 +110,12 @@ impl Buffer for ByteTendril {
 
     #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token> {
-        (&self[..]).iter().cloned().collect()
+        (&self[..]).to_vec()
     }
 
     #[cfg(feature = "std")]
     fn into_vec(self) -> Vec<Self::Token> {
-        (&self[..]).iter().cloned().collect()
+        (&self[..]).to_vec()
     }
 }
 
@@ -125,8 +125,8 @@ mod test {
 
     #[test]
     fn basic() {
-        use ascii::decimal;
-        use primitives::IntoInner;
+        use crate::ascii::decimal;
+        use crate::primitives::IntoInner;
 
         assert_eq!(
             decimal(Tendril::from_slice(&b"123"[..])).into_inner(),
@@ -136,6 +136,6 @@ mod test {
 
     #[test]
     fn primitives() {
-        ::types::test::run_primitives_test(Tendril::from_slice(&b"abc"[..]), |x| x);
+        crate::types::test::run_primitives_test(Tendril::from_slice(&b"abc"[..]), |x| x);
     }
 }

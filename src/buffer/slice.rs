@@ -44,10 +44,7 @@ impl<'i, I: 'i> SliceStream<'i, I> {
     /// Creates a new stream from an immutable slice.
     #[inline]
     pub fn new(slice: &'i [I]) -> Self {
-        SliceStream {
-            pos: 0,
-            slice,
-        }
+        SliceStream { pos: 0, slice }
     }
 
     /// The number of bytes left in the buffer
