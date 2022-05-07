@@ -1,5 +1,5 @@
 [package]
-name = "chomp1"
+name = "chomp"
 version = "0.3.2"
 authors = ["Martin Wernstål <m4rw3r@gmail.com>"]
 description = "A fast monadic-style parser combinator designed to work on stable Rust."
