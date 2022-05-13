@@ -14,9 +14,8 @@ extern crate chomp1;
 use std::env;
 use std::fs::File;
 
-use chomp1::prelude::*;
-
 use chomp1::buffer::{Source, Stream, StreamError};
+use chomp1::prelude::*;
 
 #[derive(Debug)]
 struct Request<B> {

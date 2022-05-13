@@ -1,4 +1,5 @@
-/// Macro emulating `do`-notation for the parser monad, automatically threading the linear type.
+/// Macro emulating `do`-notation for the parser monad, automatically threading
+/// the linear type.
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
@@ -9,7 +10,7 @@
 /// # fn do_something(_i: u8) -> u32 { 23 }
 /// # let input = &b"foo"[..];
 /// # let _r: ParseResult<_, _, ()> =
-/// parse!{input;
+/// parse! {input;
 ///                 parser("parameter");
 ///     let value = other_parser();
 ///
@@ -18,9 +19,8 @@
 /// # ;
 /// # let _r: ParseResult<_, _, ()> =
 /// // is equivalent to:
-/// parser(input, "parameter").bind(|i, _|
-///     other_parser(i).bind(|i, value|
-///         i.ret(do_something(value))))
+/// parser(input, "parameter")
+///     .bind(|i, _| other_parser(i).bind(|i, value| i.ret(do_something(value))))
 /// # ;
 /// # }
 /// ```
@@ -32,16 +32,16 @@
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp1::prelude::{Buffer, Error, Input, ParseResult, parse_only, take_while1, token};
+/// use chomp1::prelude::{parse_only, take_while1, token, Buffer, Error, Input, ParseResult};
 ///
 /// #[derive(Debug, Eq, PartialEq)]
 /// struct Name<B: Buffer> {
 ///     first: B,
-///     last:  B,
+///     last: B,
 /// }
 ///
-/// fn parser<I: Input<Token=u8>>(i: I) -> ParseResult<I, Name<I::Buffer>, Error<I::Token>> {
-///     parse!{i;
+/// fn parser<I: Input<Token = u8>>(i: I) -> ParseResult<I, Name<I::Buffer>, Error<I::Token>> {
+///     parse! {i;
 ///         let first = take_while1(|c| c != b' ');
 ///                     token(b' ');
 ///         let last  = take_while1(|c| c != b'\n');
@@ -53,24 +53,27 @@
 ///     }
 /// }
 ///
-/// assert_eq!(parse_only(parser, "Martin Wernstål\n".as_bytes()), Ok(Name{
-///     first: &b"Martin"[..],
-///     last: "Wernstål".as_bytes()
-/// }));
+/// assert_eq!(
+///     parse_only(parser, "Martin Wernstål\n".as_bytes()),
+///     Ok(Name {
+///         first: &b"Martin"[..],
+///         last: "Wernstål".as_bytes()
+///     })
+/// );
 /// # }
 /// ```
 ///
-/// Parsing an IP-address with a string-prefix and terminated with semicolon using the `<*` (skip)
-/// operator to make it more succint:
+/// Parsing an IP-address with a string-prefix and terminated with semicolon
+/// using the `<*` (skip) operator to make it more succint:
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp1::prelude::{U8Input, SimpleResult, parse_only, string, token};
 /// use chomp1::ascii::decimal;
+/// use chomp1::prelude::{parse_only, string, token, SimpleResult, U8Input};
 ///
 /// fn parse_ip<I: U8Input>(i: I) -> SimpleResult<I, (u8, u8, u8, u8)> {
-///     parse!{i;
+///     parse! {i;
 ///                 string(b"ip:");
 ///         let a = decimal() <* token(b'.');
 ///         let b = decimal() <* token(b'.');
@@ -81,7 +84,10 @@
 ///     }
 /// }
 ///
-/// assert_eq!(parse_only(parse_ip, b"ip:192.168.0.1;"), Ok((192, 168, 0, 1)));
+/// assert_eq!(
+///     parse_only(parse_ip, b"ip:192.168.0.1;"),
+///     Ok((192, 168, 0, 1))
+/// );
 /// # }
 /// ```
 ///
@@ -100,8 +106,8 @@
 ///     Debug,
 /// };
 ///
-/// let level        = |i, b, r| string(i, b).map(|_| r);
-/// let log_severity = parser!{
+/// let level = |i, b, r| string(i, b).map(|_| r);
+/// let log_severity = parser! {
 ///     level(b"ERROR", Log::Error)   <|>
 ///     level(b"WARN",  Log::Warning) <|>
 ///     level(b"INFO",  Log::Info)    <|>
@@ -114,7 +120,8 @@
 ///
 /// # Grammar
 ///
-/// EBNF using `$ty`, `$expr`, `$ident` and `$pat` for the equivalent Rust macro patterns.
+/// EBNF using `$ty`, `$expr`, `$ident` and `$pat` for the equivalent Rust macro
+/// patterns.
 ///
 /// ```text
 /// Block     ::= Statement* Expr
@@ -149,8 +156,8 @@
 ///
 /// ## Statement
 ///
-/// A statement is a line ending in a semicolon. This must be followed by either another statement
-/// or by an expression which ends the block.
+/// A statement is a line ending in a semicolon. This must be followed by either
+/// another statement or by an expression which ends the block.
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
@@ -158,7 +165,7 @@
 /// # use chomp1::ascii::decimal;
 /// # use chomp1::prelude::{parse_only, U8Input, token, SimpleResult};
 /// # fn my_parser<I: U8Input>(i: I) -> SimpleResult<I, u32> {
-/// parse!{i;
+/// parse! {i;
 ///     token(b':');
 ///     let n: u32 = decimal();
 ///     ret n * 2
@@ -170,40 +177,46 @@
 ///
 /// ### Bind
 ///
-/// A bind statement uses a `let`-binding to bind a value of a parser-expression within the parsing
-/// context. The expression to the right of the equal-sign will be evaluated and if the parser is
-/// still in a success state the value will be bound to the pattern following `let`.
+/// A bind statement uses a `let`-binding to bind a value of a parser-expression
+/// within the parsing context. The expression to the right of the equal-sign
+/// will be evaluated and if the parser is still in a success state the value
+/// will be bound to the pattern following `let`.
 ///
-/// The patter can either just be an identifier but it can also be any irrefutable match-pattern,
-/// types can also be declared with `identifier: type` when necessary (eg. declare integer type
-/// used with the `decimal` parser).
+/// The patter can either just be an identifier but it can also be any
+/// irrefutable match-pattern, types can also be declared with `identifier:
+/// type` when necessary (eg. declare integer type used with the `decimal`
+/// parser).
 ///
 /// ### Action
 ///
-/// An action is any parser-expression, ended with a semicolon. This will be executed and its
-/// result will be discarded before proceeding to the next statement or the ending expression.
-/// Any error will exit early and will be propagated.
+/// An action is any parser-expression, ended with a semicolon. This will be
+/// executed and its result will be discarded before proceeding to the next
+/// statement or the ending expression. Any error will exit early and will be
+/// propagated.
 ///
 /// ## Expression
 ///
-/// A parser expression can either be the only part of a `parse!` macro (eg. for alternating as
-/// seen above) or it can be a part of a bind or action statement or it is the final result of a
-/// parse-block.
+/// A parser expression can either be the only part of a `parse!` macro (eg. for
+/// alternating as seen above) or it can be a part of a bind or action statement
+/// or it is the final result of a parse-block.
 ///
 /// ### Named
 ///
-/// A named action is like a function call, but will be expanded to include the parsing context
-/// (`Input`) as the first parameter. The syntax is currently limited to a rust identifier followed
-/// by a parameter list within parentheses. The parentheses are mandatory.
+/// A named action is like a function call, but will be expanded to include the
+/// parsing context (`Input`) as the first parameter. The syntax is currently
+/// limited to a rust identifier followed by a parameter list within
+/// parentheses. The parentheses are mandatory.
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
 /// # use chomp1::prelude::{parse_only, U8Input, SimpleResult};
 /// # fn my_parser<I: U8Input>(i: I) -> SimpleResult<I, &'static str> {
-/// fn do_it<'a, I: U8Input>(i: I, s: &'a str) -> SimpleResult<I, &'a str> { i.ret(s) }
+/// fn do_it<'a, I: U8Input>(i: I, s: &'a str) -> SimpleResult<I, &'a str> {
+///     i.ret(s)
+/// }
 ///
-/// parse!{i;
+/// parse! {i;
 ///     do_it("second parameter")
 /// }
 /// # }
@@ -213,45 +226,44 @@
 ///
 /// ### Ret and Err
 ///
-/// Many times you want to move a value into the parser monad, eg. to return a result or report an
-/// error. The `ret` and `err` keywords provide this functionality inside of `parse!`-expressions.
+/// Many times you want to move a value into the parser monad, eg. to return a
+/// result or report an error. The `ret` and `err` keywords provide this
+/// functionality inside of `parse!`-expressions.
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
 /// # use chomp1::prelude::{parse_only, Input};
-/// let r: Result<_, (_, ())> = parse_only(
-///     parser!{ ret "some success data" },
-///     b"input data"
-/// );
+/// let r: Result<_, (_, ())> = parse_only(parser! { ret "some success data" }, b"input data");
 ///
 /// assert_eq!(r, Ok("some success data"));
 /// # }
 /// ```
 ///
-/// In the example above the `Result<_, (_, ())>` type-annotation is required since `ret`
-/// leaves the error type `E` free which means that the `parser!` expression above cannot infer the
-/// error type without the annotation. `ret` and `end` both provide a mechanism to supply this
-/// information inline:
+/// In the example above the `Result<_, (_, ())>` type-annotation is required
+/// since `ret` leaves the error type `E` free which means that the `parser!`
+/// expression above cannot infer the error type without the annotation. `ret`
+/// and `end` both provide a mechanism to supply this information inline:
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
 /// # use chomp1::prelude::{parse_only, Input};
-/// let r = parse_only(parser!{ err @ u32, _: "some error data" }, b"input data");
+/// let r = parse_only(parser! { err @ u32, _: "some error data" }, b"input data");
 ///
 /// assert_eq!(r, Err((&b"input data"[..], "some error data")));
 /// # }
 /// ```
 ///
-/// Note that we only declare the success type (`u32` above) and leave out the type of the error
-/// (by using `_`) since that can be uniquely inferred.
+/// Note that we only declare the success type (`u32` above) and leave out the
+/// type of the error (by using `_`) since that can be uniquely inferred.
 ///
 /// ### Inline
 ///
-/// An inline expression is essentially a closure where the parser state (`Input` type) is exposed.
-/// This is useful for doing eg. inline `match` statements or to delegate to another parser which
-/// requires some plain Rust logic:
+/// An inline expression is essentially a closure where the parser state
+/// (`Input` type) is exposed. This is useful for doing eg. inline `match`
+/// statements or to delegate to another parser which requires some plain Rust
+/// logic:
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
@@ -263,7 +275,7 @@
 ///
 /// let condition = true;
 ///
-/// let p = parser!{
+/// let p = parser! {
 ///     state -> match condition {
 ///         true  => other_parser(state),
 ///         false => Input::err(state, "failure"),
@@ -276,17 +288,18 @@
 ///
 /// ### Operators
 ///
-/// Expressions also supports using operators in between sub-expressions to make common actions
-/// more succint. These are infix operators with right associativity (ie. they are placed
-/// between expression terms and are grouped towards the right). The result of the expression as a
-/// whole will be deiced by the operator.
+/// Expressions also supports using operators in between sub-expressions to make
+/// common actions more succint. These are infix operators with right
+/// associativity (ie. they are placed between expression terms and are grouped
+/// towards the right). The result of the expression as a whole will be deiced
+/// by the operator.
 ///
 /// Ordered after operator precedence:
 ///
 /// 1. `<*`, skip
 ///
-///    Evaluates the parser to the left first and on success evaluates the parser on the right,
-///    skipping its result.
+///    Evaluates the parser to the left first and on success evaluates the
+/// parser on the right,    skipping its result.
 ///
 ///    ```
 ///    # #[macro_use] extern crate chomp1;
@@ -300,8 +313,9 @@
 ///
 /// 2. `<|>`, or
 ///
-///    Attempts to evaluate the parser on the left and if that fails it will backtrack and retry
-///    with the parser on the right. Is equivalent to stacking `or` combinators.
+///    Attempts to evaluate the parser on the left and if that fails it will
+/// backtrack and retry    with the parser on the right. Is equivalent to
+/// stacking `or` combinators.
 ///
 ///    ```
 ///    # #[macro_use] extern crate chomp1;
@@ -315,8 +329,8 @@
 ///
 /// 3. `>>`, then
 ///
-///    Evaluates the parser to the left, then throws away any value and evaluates the parser on
-///    the right.
+///    Evaluates the parser to the left, then throws away any value and
+/// evaluates the parser on    the right.
 ///
 ///    ```
 ///    # #[macro_use] extern crate chomp1;
@@ -328,18 +342,19 @@
 ///    # }
 ///    ```
 ///
-/// These operators correspond to the equivalent operators found in Haskell's `Alternative`,
-/// `Applicative` and `Monad` typeclasses, with the exception of being right-associative (the
-/// operators are left-associative in Haskell).
+/// These operators correspond to the equivalent operators found in Haskell's
+/// `Alternative`, `Applicative` and `Monad` typeclasses, with the exception of
+/// being right-associative (the operators are left-associative in Haskell).
 ///
-/// An Inline expression needs to be wrapped in parenthesis to parse (`$expr` pattern in macros
-/// require `;` or `,` to be terminated at the same nesting level):
+/// An Inline expression needs to be wrapped in parenthesis to parse (`$expr`
+/// pattern in macros require `;` or `,` to be terminated at the same nesting
+/// level):
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
 /// # use chomp1::prelude::{Input, parse_only};
-/// let p = parser!{ (i -> Input::err(i, "foo")) <|> (i -> Input::ret(i, "bar")) };
+/// let p = parser! { (i -> Input::err(i, "foo")) <|> (i -> Input::ret(i, "bar")) };
 ///
 /// assert_eq!(parse_only(p, b"a;"), Ok("bar"));
 /// # }
@@ -347,33 +362,35 @@
 ///
 /// # Debugging
 ///
-/// Errors in Rust macros can be hard to decipher at times, especially when using very complex
-/// macros which incrementally parse their input. This section is provided to give some hints and
-/// solutions for common problems. If this still does not solve the problem, feel free to ask
-/// questions on GitHub or via email or open an issue.
+/// Errors in Rust macros can be hard to decipher at times, especially when
+/// using very complex macros which incrementally parse their input. This
+/// section is provided to give some hints and solutions for common problems. If
+/// this still does not solve the problem, feel free to ask questions on GitHub
+/// or via email or open an issue.
 ///
 /// ## Macro recursion limit
 ///
-/// The `parse!` macro is expanding by recursively invoking itself, parsing a bit of the input each
-/// iteration. This sometimes reaches the recursion-limit for macros in Rust:
+/// The `parse!` macro is expanding by recursively invoking itself, parsing a
+/// bit of the input each iteration. This sometimes reaches the recursion-limit
+/// for macros in Rust:
 ///
 /// ```text
 /// src/macros.rs:439:99: 439:148 error: recursion limit reached while expanding the macro `__parse_internal`
 /// src/macros.rs:439     ( @EXPR_SKIP($input:expr; $($lhs:tt)*) $t1:tt $t2:tt )                                   => { __parse_internal!{@TERM($input) $($lhs)* $t1 $t2} };
 /// ```
 ///
-/// The default recursion limit is `64`, this can be raised by using a crate-annotation in the
-/// crate where the recursion limit is an issue:
+/// The default recursion limit is `64`, this can be raised by using a
+/// crate-annotation in the crate where the recursion limit is an issue:
 ///
 /// ```
-/// #![recursion_limit="100"]
+/// #![recursion_limit = "100"]
 /// # fn main() {}
 /// ```
 ///
 /// # Debugging macro expansion
 ///
-/// If you are using the nightly version of rust you can use the feature `trace_macros` to see how
-/// the macro is expanded:
+/// If you are using the nightly version of rust you can use the feature
+/// `trace_macros` to see how the macro is expanded:
 ///
 /// ```ignore
 /// #![feature(trace_macros)]
@@ -402,14 +419,16 @@
 /// __parse_internal! { @ TERM ( i ) token ( b';' ) }
 /// ```
 ///
-/// Output like the above can make it clearer where it is actually failing, and can sometimes
-/// highlight the exact problem (with the help of looking at the grammar found above).
+/// Output like the above can make it clearer where it is actually failing, and
+/// can sometimes highlight the exact problem (with the help of looking at the
+/// grammar found above).
 ///
 /// ## Function error pointing to macro code
 ///
-/// Sometimes non-syntax errors will occur in macro code, `rustc` currently (on stable) has issues
-/// with actually displaying the actual code which causes the problem. Instead the macro-part will
-/// be highlighted as the cause of the issue:
+/// Sometimes non-syntax errors will occur in macro code, `rustc` currently (on
+/// stable) has issues with actually displaying the actual code which causes the
+/// problem. Instead the macro-part will be highlighted as the cause of the
+/// issue:
 ///
 /// ```text
 /// src/macros.rs:431:71: 431:97 error: this function takes 1 parameter but 2 parameters were supplied [E0061]
@@ -419,17 +438,18 @@
 /// ...
 /// ```
 ///
-/// Usually this is related to a Named expression which is used to invoke a function, but the
-/// function-parameters do not match the expected. Check all the named invocations in the
-/// macro-invocation and keep in mind that the first parameter will be an `Input<I>` which is added
-/// automatically. If that still does not help, try using nighly and the `trace_macro` feature to
+/// Usually this is related to a Named expression which is used to invoke a
+/// function, but the function-parameters do not match the expected. Check all
+/// the named invocations in the macro-invocation and keep in mind that the
+/// first parameter will be an `Input<I>` which is added automatically. If that
+/// still does not help, try using nighly and the `trace_macro` feature to
 /// see what is expanded.
 ///
 /// ## `error: expected ident, found foo`
 ///
-/// This error (with `foo` being a user-defined symbol)  can be caused by having a Bind statement
-/// as the last statement in a `parse!` block.  The last part of a `parse!` block must be an
-/// expression.
+/// This error (with `foo` being a user-defined symbol)  can be caused by having
+/// a Bind statement as the last statement in a `parse!` block.  The last part
+/// of a `parse!` block must be an expression.
 ///
 /// ```text
 /// src/macros.rs:551:111: 551:116 error: expected ident, found foo
@@ -442,10 +462,11 @@ macro_rules! parse {
     ( $($t:tt)* ) => { __parse_internal!{ $($t)* } };
 }
 
-/// Internal rule to create an or-combinator, separate macro so that tests can override it.
+/// Internal rule to create an or-combinator, separate macro so that tests can
+/// override it.
 ///
-/// Cannot make a method on `Input` due to type-inference failures due to the exact implementation
-/// of `or` not being fully specified.
+/// Cannot make a method on `Input` due to type-inference failures due to the
+/// exact implementation of `or` not being fully specified.
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __parse_internal_or {
@@ -454,9 +475,11 @@ macro_rules! __parse_internal_or {
     };
 }
 
-/// Actual implementation of the parse macro, hidden to make the documentation easier to read.
+/// Actual implementation of the parse macro, hidden to make the documentation
+/// easier to read.
 ///
-/// Patterns starting with @ symbols are internal rules, used by other parts of the macro.
+/// Patterns starting with @ symbols are internal rules, used by other parts of
+/// the macro.
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __parse_internal {
@@ -600,14 +623,15 @@ macro_rules! __parse_internal {
     ( $input:expr ; ) => { $input };
 }
 
-/// Macro wrapping an invocation to ``parse!`` in a closure, useful for creating parsers inline.
+/// Macro wrapping an invocation to ``parse!`` in a closure, useful for creating
+/// parsers inline.
 ///
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
 /// use chomp1::prelude::{parse_only, string};
 ///
-/// let r = parser!{ string(b"ab") <|> string(b"ac") };
+/// let r = parser! { string(b"ab") <|> string(b"ac") };
 ///
 /// assert_eq!(parse_only(r, b"ac"), Ok(&b"ac"[..]));
 /// # }
@@ -619,8 +643,8 @@ macro_rules! parser {
 
 #[cfg(test)]
 mod test {
-    /// Override the or-combinator used by parse! to make it possible to use the simplified
-    /// test-types.
+    /// Override the or-combinator used by parse! to make it possible to use the
+    /// simplified test-types.
     macro_rules! __parse_internal_or {
         ($input:expr, $lhs:expr, $rhs:expr) => {{
             let Input(i) = $input;
@@ -1234,8 +1258,8 @@ mod test {
         let i2 = Input(123);
 
         let r1: Data<&str, &str> = parse! {i1; let a = err "error"; ret a};
-        // Necessary with type annotation here since the value type is not defined in the first
-        // statement in parse
+        // Necessary with type annotation here since the value type is not defined in
+        // the first statement in parse
         let r2: Data<(), &str> = parse! {i2; err @ (), _: "this"; err "not this"};
 
         assert_eq!(r1, Data::Error(123, "error"));

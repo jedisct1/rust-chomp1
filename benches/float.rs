@@ -1,8 +1,7 @@
-use benchmark_simple::*;
-
 use std::str;
 use std::str::FromStr;
 
+use benchmark_simple::*;
 use chomp1::ascii;
 use chomp1::primitives::IntoInner;
 use chomp1::types::Buffer;
@@ -84,8 +83,9 @@ fn float_small_f32() {
     println!("{}: {}", function_name!(), res);
 }
 
-/// The purpose of this test is to measure the time Chomp uses to parse and allocate the vector
-/// required to pass the data on to Rust's `FromStr` implementation for `f32` and `f64`.
+/// The purpose of this test is to measure the time Chomp uses to parse and
+/// allocate the vector required to pass the data on to Rust's `FromStr`
+/// implementation for `f32` and `f64`.
 fn float_no_conversion() {
     let res = Bench::new().run(&Options::default(), || {
         ascii::match_float(PI_SLICE).map(|b| b.into_vec())

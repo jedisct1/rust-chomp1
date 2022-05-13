@@ -9,11 +9,11 @@ use std::iter::FromIterator;
 
 use either::Either;
 
+use crate::primitives::{IntoInner, Primitives};
 use crate::types::{Input, ParseResult};
 
-use crate::primitives::{IntoInner, Primitives};
-
-/// Applies the parser `p` exactly `num` times collecting all items into `T: FromIterator`.
+/// Applies the parser `p` exactly `num` times collecting all items into `T:
+/// FromIterator`.
 ///
 /// ```
 /// use chomp1::prelude::*;
@@ -22,12 +22,18 @@ use crate::primitives::{IntoInner, Primitives};
 ///     count(i, 2, |i| token(i, b'a'))
 /// }
 ///
-/// assert_eq!(parse_only(parse, b"a  "), Err((&b"  "[..], Error::expected(b'a'))));
+/// assert_eq!(
+///     parse_only(parse, b"a  "),
+///     Err((&b"  "[..], Error::expected(b'a')))
+/// );
 /// assert_eq!(parse_only(parse, b"aa "), Ok(vec![b'a', b'a']));
 ///
 /// let with_remainder = |i| parse(i).bind(|i, d| take_remainder(i).map(|r| (r, d)));
 ///
-/// assert_eq!(parse_only(with_remainder, b"aaa"), Ok((&b"a"[..], vec![b'a', b'a'])));
+/// assert_eq!(
+///     parse_only(with_remainder, b"aaa"),
+///     Ok((&b"a"[..], vec![b'a', b'a']))
+/// );
 /// ```
 #[inline]
 pub fn count<I: Input, T, E, F, U>(i: I, num: usize, p: F) -> ParseResult<I, T, E>
@@ -38,13 +44,13 @@ where
     bounded::many(i, num, p)
 }
 
-/// Tries the parser `f`, on success it yields the parsed value, on failure `default` will be
-/// yielded instead.
+/// Tries the parser `f`, on success it yields the parsed value, on failure
+/// `default` will be yielded instead.
 ///
 /// Incomplete state is propagated. Backtracks on error.
 ///
 /// ```
-/// use chomp1::prelude::{U8Input, SimpleResult, parse_only, option, token};
+/// use chomp1::prelude::{option, parse_only, token, SimpleResult, U8Input};
 ///
 /// fn f<I: U8Input>(i: I) -> SimpleResult<I, u8> {
 ///     option(i, |i| token(i, b'a'), b'd')
@@ -66,24 +72,26 @@ where
     }
 }
 
-/// Tries to match the parser `f`, if `f` fails it tries `g`. Returns the success value of
-/// the first match, otherwise the error of the last one if both fail.
+/// Tries to match the parser `f`, if `f` fails it tries `g`. Returns the
+/// success value of the first match, otherwise the error of the last one if
+/// both fail.
 ///
 /// Incomplete state is propagated from the first one to report incomplete.
 ///
-/// If multiple `or` combinators are used in the same expression, consider using the `parse!` macro
-/// and its alternation operator (`<|>`).
+/// If multiple `or` combinators are used in the same expression, consider using
+/// the `parse!` macro and its alternation operator (`<|>`).
 ///
 /// ```
-/// use chomp1::prelude::{Error, parse_only, or, token};
+/// use chomp1::prelude::{or, parse_only, token, Error};
 ///
-/// let p = |i| or(i,
-///             |i| token(i, b'a'),
-///             |i| token(i, b'b'));
+/// let p = |i| or(i, |i| token(i, b'a'), |i| token(i, b'b'));
 ///
 /// assert_eq!(parse_only(&p, b"abc"), Ok(b'a'));
 /// assert_eq!(parse_only(&p, b"bbc"), Ok(b'b'));
-/// assert_eq!(parse_only(&p, b"cbc"), Err((&b"cbc"[..], Error::expected(b'b'))));
+/// assert_eq!(
+///     parse_only(&p, b"cbc"),
+///     Err((&b"cbc"[..], Error::expected(b'b')))
+/// );
 /// ```
 #[inline]
 pub fn or<I: Input, T, E, F, G>(i: I, f: F, g: G) -> ParseResult<I, T, E>
@@ -99,19 +107,23 @@ where
     }
 }
 
-/// Attempts the left parser first and then the right parser if the first parser fails. Result is
-/// returned as an `Either<T, U>` depending on which parser succeeded.
+/// Attempts the left parser first and then the right parser if the first parser
+/// fails. Result is returned as an `Either<T, U>` depending on which parser
+/// succeeded.
 ///
 /// NOTE: If both parsers have the same return-type, use `or` instead.
 ///
 /// ```
-/// use chomp1::prelude::{Error, parse_only, either, token, Left, Right};
+/// use chomp1::prelude::{either, parse_only, token, Error, Left, Right};
 ///
 /// let p = |i| either(i, |i| token(i, b'a'), |i| token(i, b'b'));
 ///
 /// assert_eq!(parse_only(&p, b"a"), Ok(Left(b'a')));
 /// assert_eq!(parse_only(&p, b"b"), Ok(Right(b'b')));
-/// assert_eq!(parse_only(&p, b"c"), Err((&b"c"[..], Error::expected(b'b'))));
+/// assert_eq!(
+///     parse_only(&p, b"c"),
+///     Err((&b"c"[..], Error::expected(b'b')))
+/// );
 /// ```
 #[inline]
 pub fn either<I, T, U, E, F, G>(i: I, f: F, g: G) -> ParseResult<I, Either<T, U>, E>
@@ -128,37 +140,36 @@ where
     }
 }
 
-/// Attempts each parser yielded by an iterator in order, returning the result of the first
-/// successful parser. This combinator requires boxing of all the parsers returned from the
-/// iterator.
+/// Attempts each parser yielded by an iterator in order, returning the result
+/// of the first successful parser. This combinator requires boxing of all the
+/// parsers returned from the iterator.
 ///
 /// Panics if the list/iteartor is empty.
 ///
-/// NOTE: Since we are supporting stable, `FnMut` is required here since `FnBox` cannot be used
-/// yet.
+/// NOTE: Since we are supporting stable, `FnMut` is required here since `FnBox`
+/// cannot be used yet.
 ///
 /// ```
 /// use chomp1::combinators::choice;
-/// use chomp1::parsers::token;
 /// use chomp1::parse_only;
+/// use chomp1::parsers::token;
 ///
-/// let v: Vec<Box<FnMut(_) -> _>> = vec![
-///     Box::new(|i| token(i, b'b')),
-///     Box::new(|i| token(i, b'a')),
-/// ];
+/// let v: Vec<Box<FnMut(_) -> _>> =
+///     vec![Box::new(|i| token(i, b'b')), Box::new(|i| token(i, b'a'))];
 /// assert_eq!(parse_only(|i| choice(i, v), &b"abc"[..]), Ok(b'a'));
 /// ```
 ///
 /// ```
 /// use chomp1::combinators::choice;
-/// use chomp1::parsers::{Error, token};
 /// use chomp1::parse_only;
+/// use chomp1::parsers::{token, Error};
 ///
-/// let v: Vec<Box<FnMut(_) -> _>> = vec![
-///     Box::new(|i| token(i, b'b')),
-///     Box::new(|i| token(i, b'a')),
-/// ];
-/// assert_eq!(parse_only(|i| choice(i, v), &b"c"[..]), Err((&b"c"[..], Error::expected(b'a'))));
+/// let v: Vec<Box<FnMut(_) -> _>> =
+///     vec![Box::new(|i| token(i, b'b')), Box::new(|i| token(i, b'a'))];
+/// assert_eq!(
+///     parse_only(|i| choice(i, v), &b"c"[..]),
+///     Err((&b"c"[..], Error::expected(b'a')))
+/// );
 /// ```
 #[cfg(feature = "std")]
 #[inline]
@@ -187,19 +198,22 @@ where
     }
 }
 
-/// Parses many instances of `f` until it does no longer match, collecting all matches into the
-/// type `T: FromIterator`.
+/// Parses many instances of `f` until it does no longer match, collecting all
+/// matches into the type `T: FromIterator`.
 ///
 /// Note: Allocates data.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, token, many, take_while1};
+/// use chomp1::prelude::{many, parse_only, take_while1, token};
 ///
-/// let r: Result<Vec<_>, _> = parse_only(|i| many(i,
-///     |i| take_while1(i, |c| c != b',' && c != b' ')
-///         .bind(|i, c| token(i, b',')
-///                      .map(|_| c))),
-///     b"a,bc,cd ");
+/// let r: Result<Vec<_>, _> = parse_only(
+///     |i| {
+///         many(i, |i| {
+///             take_while1(i, |c| c != b',' && c != b' ').bind(|i, c| token(i, b',').map(|_| c))
+///         })
+///     },
+///     b"a,bc,cd ",
+/// );
 ///
 /// assert_eq!(r, Ok(vec![&b"a"[..], &b"bc"[..]]));
 /// ```
@@ -212,22 +226,27 @@ where
     bounded::many(i, .., f)
 }
 
-/// Parses at least one instance of `f` and continues until it does no longer match, collecting
-/// all matches into the type `T: FromIterator`.
+/// Parses at least one instance of `f` and continues until it does no longer
+/// match, collecting all matches into the type `T: FromIterator`.
 ///
-/// Note: If the last parser succeeds on the last input item then this parser is still considered
-/// incomplete as there might be more data to fill.
+/// Note: If the last parser succeeds on the last input item then this parser is
+/// still considered incomplete as there might be more data to fill.
 ///
 /// Note: Allocates data.
 ///
 /// ```
-/// use chomp1::prelude::{Error, parse_only, token, many1, take_while1};
+/// use chomp1::prelude::{many1, parse_only, take_while1, token, Error};
 ///
-/// let p = |i| many1(i, |i| take_while1(i, |c| c != b',' && c != b' ')
-///             .bind(|i, c| token(i, b',')
-///                          .map(|_| c)));
+/// let p = |i| {
+///     many1(i, |i| {
+///         take_while1(i, |c| c != b',' && c != b' ').bind(|i, c| token(i, b',').map(|_| c))
+///     })
+/// };
 ///
-/// assert_eq!(parse_only(&p, b"a "), Err((&b" "[..], Error::expected(b','))));
+/// assert_eq!(
+///     parse_only(&p, b"a "),
+///     Err((&b" "[..], Error::expected(b',')))
+/// );
 /// assert_eq!(parse_only(&p, b"a, "), Ok(vec![&b"a"[..]]));
 /// ```
 #[inline]
@@ -239,17 +258,17 @@ where
     bounded::many(i, 1.., f)
 }
 
-/// Applies the parser `R` zero or more times, separated by the parser `F`. All matches from `R`
-/// will be collected into the type `T: FromIterator`.
+/// Applies the parser `R` zero or more times, separated by the parser `F`. All
+/// matches from `R` will be collected into the type `T: FromIterator`.
 ///
-/// If the separator or parser registers error or incomplete this parser stops and yields the
-/// collected value.
+/// If the separator or parser registers error or incomplete this parser stops
+/// and yields the collected value.
 ///
 /// Incomplete will be propagated from `R` if end of input has not been read.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, sep_by, token};
 /// use chomp1::ascii::decimal;
+/// use chomp1::prelude::{parse_only, sep_by, token};
 ///
 /// let r: Result<Vec<u8>, _> = parse_only(|i| sep_by(i, decimal, |i| token(i, b';')), b"91;03;20");
 ///
@@ -266,19 +285,20 @@ where
     bounded::sep_by(i, .., p, sep)
 }
 
-/// Applies the parser `R` one or more times, separated by the parser `F`. All matches from `R`
-/// will be collected into the type `T: FromIterator`.
+/// Applies the parser `R` one or more times, separated by the parser `F`. All
+/// matches from `R` will be collected into the type `T: FromIterator`.
 ///
-/// If the separator or parser registers error or incomplete this parser stops and yields the
-/// collected value if at least one item has been read.
+/// If the separator or parser registers error or incomplete this parser stops
+/// and yields the collected value if at least one item has been read.
 ///
 /// Incomplete will be propagated from `R` if end of input has not been read.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, sep_by1, token};
 /// use chomp1::ascii::decimal;
+/// use chomp1::prelude::{parse_only, sep_by1, token};
 ///
-/// let r: Result<Vec<u8>, _> = parse_only(|i| sep_by1(i, decimal, |i| token(i, b';')), b"91;03;20");
+/// let r: Result<Vec<u8>, _> =
+///     parse_only(|i| sep_by1(i, decimal, |i| token(i, b';')), b"91;03;20");
 ///
 /// assert_eq!(r, Ok(vec![91, 03, 20]));
 /// ```
@@ -293,15 +313,17 @@ where
     bounded::sep_by(i, 1.., p, sep)
 }
 
-/// Applies the parser `R` multiple times until the parser `F` succeeds and returns a
-/// `T: FromIterator` populated by the values yielded by `R`. Consumes the matched part of `F`.
+/// Applies the parser `R` multiple times until the parser `F` succeeds and
+/// returns a `T: FromIterator` populated by the values yielded by `R`. Consumes
+/// the matched part of `F`.
 ///
-/// This parser is considered incomplete if the parser `R` is considered incomplete.
+/// This parser is considered incomplete if the parser `R` is considered
+/// incomplete.
 ///
 /// Errors from `R` are propagated.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, many_till, any, token};
+/// use chomp1::prelude::{any, many_till, parse_only, token};
 ///
 /// let r: Result<Vec<u8>, _> = parse_only(|i| many_till(i, any, |i| token(i, b';')), b"abc;def");
 ///
@@ -322,13 +344,17 @@ where
 ///
 /// Incomplete state will be propagated.
 ///
-/// This is more efficient compared to using `many` and then just discarding the result as
-/// `many` allocates a separate data structure to contain the data before proceeding.
+/// This is more efficient compared to using `many` and then just discarding the
+/// result as `many` allocates a separate data structure to contain the data
+/// before proceeding.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, skip_many, token};
 ///
-/// let r = parse_only(|i| skip_many(i, |i| token(i, b'a')).then(|i| token(i, b'b')), b"aaaabc");
+/// let r = parse_only(
+///     |i| skip_many(i, |i| token(i, b'a')).then(|i| token(i, b'b')),
+///     b"aaaabc",
+/// );
 ///
 /// assert_eq!(r, Ok(b'b'));
 /// ```
@@ -340,23 +366,28 @@ where
     bounded::skip_many(i, .., f)
 }
 
-/// Runs the given parser until it fails, discarding matched input, expects at least one match.
+/// Runs the given parser until it fails, discarding matched input, expects at
+/// least one match.
 ///
-/// Incomplete state will be propagated. Will propagate the error if it occurs during the first
-/// attempt.
+/// Incomplete state will be propagated. Will propagate the error if it occurs
+/// during the first attempt.
 ///
-/// This is more efficient compared to using `many1` and then just discarding the result as
-/// `many1` allocates a separate data structure to contain the data before proceeding.
+/// This is more efficient compared to using `many1` and then just discarding
+/// the result as `many1` allocates a separate data structure to contain the
+/// data before proceeding.
 ///
 /// ```
-/// use chomp1::prelude::{Error, parse_only, skip_many1, token};
+/// use chomp1::prelude::{parse_only, skip_many1, token, Error};
 ///
 /// let p = |i| skip_many1(i, |i| token(i, b'a')).bind(|i, _| token(i, b'b'));
 ///
 /// assert_eq!(parse_only(&p, b"aaaabc"), Ok(b'b'));
 /// assert_eq!(parse_only(&p, b"abc"), Ok(b'b'));
 ///
-/// assert_eq!(parse_only(&p, b"bc"), Err((&b"bc"[..], Error::expected(b'a'))));
+/// assert_eq!(
+///     parse_only(&p, b"bc"),
+///     Err((&b"bc"[..], Error::expected(b'a')))
+/// );
 /// ```
 #[inline]
 pub fn skip_many1<I: Input, T, E, F>(i: I, f: F) -> ParseResult<I, (), E>
@@ -366,13 +397,17 @@ where
     bounded::skip_many(i, 1.., f)
 }
 
-/// Returns the result of the given parser as well as the slice which matched it.
+/// Returns the result of the given parser as well as the slice which matched
+/// it.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, matched_by};
 /// use chomp1::ascii::decimal;
+/// use chomp1::prelude::{matched_by, parse_only};
 ///
-/// assert_eq!(parse_only(|i| matched_by(i, decimal), b"123"), Ok((&b"123"[..], 123u32)));
+/// assert_eq!(
+///     parse_only(|i| matched_by(i, decimal), b"123"),
+///     Ok((&b"123"[..], 123u32))
+/// );
 /// ```
 #[inline]
 pub fn matched_by<I: Input, T, E, F>(i: I, f: F) -> ParseResult<I, (I::Buffer, T), E>
@@ -394,12 +429,15 @@ where
 /// Applies the parser `F` without consuming any input.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, take};
 /// use chomp1::combinators::look_ahead;
+/// use chomp1::prelude::{parse_only, take};
 ///
 /// let p = |i| look_ahead(i, |i| take(i, 4)).bind(|i, t| take(i, 7).map(|u| (t, u)));
 ///
-/// assert_eq!(parse_only(p, b"testing"), Ok((&b"test"[..], &b"testing"[..])));
+/// assert_eq!(
+///     parse_only(p, b"testing"),
+///     Ok((&b"test"[..], &b"testing"[..]))
+/// );
 /// ```
 #[inline]
 pub fn look_ahead<I: Input, T, E, F>(i: I, f: F) -> ParseResult<I, T, E>
@@ -417,10 +455,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parsers::{any, string, take, token, Error};
     use crate::primitives::IntoInner;
     use crate::types::{Input, ParseResult};
-
-    use crate::parsers::{any, string, take, token, Error};
 
     #[test]
     fn option_test() {

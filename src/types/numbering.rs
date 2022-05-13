@@ -3,20 +3,21 @@
 //! ```
 //! # #[macro_use] extern crate chomp1;
 //! # fn main() {
-//! use chomp1::types::{Input, ParseResult};
-//! use chomp1::types::numbering::{InputPosition, LineNumber, Numbering};
 //! use chomp1::combinators::many;
-//! use chomp1::parsers::{Error, any, take_while1, string};
+//! use chomp1::parsers::{any, string, take_while1, Error};
 //! use chomp1::run_parser;
+//! use chomp1::types::numbering::{InputPosition, LineNumber, Numbering};
+//! use chomp1::types::{Input, ParseResult};
 //!
 //! // Let's count some lines
 //! let i = InputPosition::new(&b"test a\ntest b\n\ntest c\n"[..], LineNumber::new());
 //!
 //! // We could use a concrete type P too if we want to restrict to a
 //! // certain position-aware implementation
-//! fn parser<I: Input<Token=u8>, P: Numbering<Token=u8>>(i: InputPosition<I, P>)
-//!   -> ParseResult<InputPosition<I, P>, (char, P), Error<u8>> {
-//!     parse!{i;
+//! fn parser<I: Input<Token = u8>, P: Numbering<Token = u8>>(
+//!     i: InputPosition<I, P>,
+//! ) -> ParseResult<InputPosition<I, P>, (char, P), Error<u8>> {
+//!     parse! {i;
 //!                      string(b"test");
 //!                      take_while1(|c| c == b' ' || c == b'\t');
 //!         let t_name = any();
@@ -33,10 +34,15 @@
 //!
 //! let r = run_parser(i, |i| many(i, parser)).1;
 //!
-//! assert_eq!(r, Ok(vec![('a', LineNumber(0)),
-//!                       ('b', LineNumber(1)),
-//!                       // Note the two linebreaks in a row
-//!                       ('c', LineNumber(3))]));
+//! assert_eq!(
+//!     r,
+//!     Ok(vec![
+//!         ('a', LineNumber(0)),
+//!         ('b', LineNumber(1)),
+//!         // Note the two linebreaks in a row
+//!         ('c', LineNumber(3))
+//!     ])
+//! );
 //! # }
 //! ```
 
@@ -48,8 +54,8 @@ pub trait Numbering: Clone {
     /// The token type accepted by the numbering.
     type Token: Copy + PartialEq;
 
-    /// Updates the numbering based on the contents of the buffer, adding it to the current
-    /// numbering.
+    /// Updates the numbering based on the contents of the buffer, adding it to
+    /// the current numbering.
     fn update<B>(&mut self, _: &B)
     where
         B: Buffer<Token = Self::Token>;

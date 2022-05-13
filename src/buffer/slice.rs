@@ -1,6 +1,5 @@
-use crate::primitives::IntoInner;
-
 use crate::buffer::{InputBuf, Stream, StreamError};
+use crate::primitives::IntoInner;
 use crate::types::{Input, ParseResult};
 
 /// Stream implementation for immutable slices.
@@ -8,10 +7,10 @@ use crate::types::{Input, ParseResult};
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp1::parsers::{token, take};
 /// use chomp1::buffer::{SliceStream, Stream};
+/// use chomp1::parsers::{take, token};
 ///
-/// let r = SliceStream::new(b"foo").parse(parser!{
+/// let r = SliceStream::new(b"foo").parse(parser! {
 ///     token(b'f');
 ///     take(2)
 /// });
@@ -23,10 +22,10 @@ use crate::types::{Input, ParseResult};
 /// ```
 /// # #[macro_use] extern crate chomp1;
 /// # fn main() {
-/// use chomp1::prelude::{token, many, take};
 /// use chomp1::buffer::{SliceStream, Stream};
+/// use chomp1::prelude::{many, take, token};
 ///
-/// let r = SliceStream::new(b"foofoo").parse(parser!{many(parser!{
+/// let r = SliceStream::new(b"foofoo").parse(parser! {many(parser!{
 ///     token(b'f');
 ///     take(2)
 /// })});

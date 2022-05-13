@@ -7,14 +7,16 @@ pub trait DataSource {
     /// The type of items this data source produces.
     type Item: Copy + PartialEq;
 
-    /// Populates the supplied buffer with data, returns the number of items written.
+    /// Populates the supplied buffer with data, returns the number of items
+    /// written.
     ///
     /// # Notes
     ///
-    /// * The number returned must not be larger than the length of the supplied slice.
+    /// * The number returned must not be larger than the length of the supplied
+    ///   slice.
     ///
-    /// * If no data could be written (or is available), or if the slice is of zero-length, `Ok(0)`
-    ///   should be returned (includes EOF).
+    /// * If no data could be written (or is available), or if the slice is of
+    ///   zero-length, `Ok(0)` should be returned (includes EOF).
     ///
     /// * The slice must not be read from, may contain uninitialized memory.
     fn read(&mut self, _: &mut [Self::Item]) -> io::Result<usize>;
@@ -48,10 +50,11 @@ impl<R: io::Read> DataSource for ReadDataSource<R> {
     }
 }
 
-/// Implementation of `DataSource` for streams (e.g. network connections) that you can `Read` and
-/// `Write`. It's really helpful to have the ability to write through the `DataSource` and `Source`
-/// objects, because once created, often they take full ownership of your input stream, and when
-/// working with bidirectional connections you still need a way to write to them.
+/// Implementation of `DataSource` for streams (e.g. network connections) that
+/// you can `Read` and `Write`. It's really helpful to have the ability to write
+/// through the `DataSource` and `Source` objects, because once created, often
+/// they take full ownership of your input stream, and when working with
+/// bidirectional connections you still need a way to write to them.
 #[derive(Debug)]
 pub struct RWDataSource<RW: io::Read + io::Write>(RW);
 

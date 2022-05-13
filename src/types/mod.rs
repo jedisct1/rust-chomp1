@@ -8,27 +8,30 @@ use crate::primitives::{Guard, IntoInner};
 
 /// The buffers yielded parsers consuming a sequence of the input.
 ///
-/// This could either be an owned type or a slice reference depending on the `Input`
-/// implementation.
+/// This could either be an owned type or a slice reference depending on the
+/// `Input` implementation.
 pub trait Buffer: PartialEq<Self> {
     /// The token type of this buffer.
     type Token: Copy + PartialEq;
 
-    /// Applies a function in order on all tokens present in the buffer carrying an accumulator
-    /// value `B` between invocations. The buffer is consumed as part of the folding and the last
-    /// value of the accumulator is returned.
-    // Would be prefereable if there was a &self -> Iterator method, but that does not work for
-    // owned or maybe owned since the lifetimes will be wrong for one or the other. Higher Ranked
-    // Trait Bounds (HRTB) does not seem to work either since it is not possible to later
-    // instantiate the type in a function signature with a concrete lifetime without running into
-    // an "expected bound lifetime but found concrete lifetime" error. Instantiation for HRTBs seem
-    // to only take place in the actual code, not when a type is used in eg. a where clause.
+    /// Applies a function in order on all tokens present in the buffer carrying
+    /// an accumulator value `B` between invocations. The buffer is consumed
+    /// as part of the folding and the last value of the accumulator is
+    /// returned.
+    // Would be prefereable if there was a &self -> Iterator method, but that does
+    // not work for owned or maybe owned since the lifetimes will be wrong for
+    // one or the other. Higher Ranked Trait Bounds (HRTB) does not seem to work
+    // either since it is not possible to later instantiate the type in a
+    // function signature with a concrete lifetime without running into
+    // an "expected bound lifetime but found concrete lifetime" error. Instantiation
+    // for HRTBs seem to only take place in the actual code, not when a type is
+    // used in eg. a where clause.
     fn fold<B, F>(self, _: B, _: F) -> B
     where
         F: FnMut(B, Self::Token) -> B;
 
-    /// Runs the supplied function on a borrow of each token present in the buffer. Invoked in
-    /// order and once per token.
+    /// Runs the supplied function on a borrow of each token present in the
+    /// buffer. Invoked in order and once per token.
     // Same reason for above for not returning an iterator.
     fn iterate<F>(&self, _: F)
     where
@@ -43,8 +46,8 @@ pub trait Buffer: PartialEq<Self> {
 
     /// Consumes self to create an owned vector of tokens.
     ///
-    /// Will allocate if the implementation borrows storage or does not use an owned type
-    /// compatible with `Vec` internally.
+    /// Will allocate if the implementation borrows storage or does not use an
+    /// owned type compatible with `Vec` internally.
     #[cfg(feature = "std")]
     fn into_vec(self) -> Vec<Self::Token>;
 
@@ -127,8 +130,8 @@ impl<'a> Buffer for &'a str {
     }
 }
 
-/// Linear type containing the parser state, this type is threaded though `bind` and is also the
-/// initial type passed to a parser.
+/// Linear type containing the parser state, this type is threaded though `bind`
+/// and is also the initial type passed to a parser.
 ///
 /// Coupled with the `ParseResult` type it forms the parser monad:
 ///
@@ -136,23 +139,25 @@ impl<'a> Buffer for &'a str {
 /// Fn*<I: Input>(I, ...) -> ParseResult<I, T, E>;
 /// ```
 ///
-/// where ``Fn*`` is the appropriate closure/function trait, `I` the input type (can be something
-/// like `[u8]`), `...` additional parameters to the parser, `T` the carried success type and `E`
-/// the potential error type.
+/// where ``Fn*`` is the appropriate closure/function trait, `I` the input type
+/// (can be something like `[u8]`), `...` additional parameters to the parser,
+/// `T` the carried success type and `E` the potential error type.
 pub trait Input: Sized {
     /// The token type of the input.
     type Token: Copy + PartialEq;
 
     /// A marker type which is used to backtrack using `_mark` and `_restore`.
     ///
-    /// It should also be possible to use this type to consume the data from the marked position to
-    /// the current position.
+    /// It should also be possible to use this type to consume the data from the
+    /// marked position to the current position.
     #[doc(hidden)]
     type Marker;
 
-    /// The buffer type yielded by this input when multiple tokens are consumed in sequence.
+    /// The buffer type yielded by this input when multiple tokens are consumed
+    /// in sequence.
     ///
-    /// Can eg. provide zero-copy parsing if the input type is built to support it.
+    /// Can eg. provide zero-copy parsing if the input type is built to support
+    /// it.
     type Buffer: Buffer<Token = Self::Token>;
 
     /// Returns `t` as a success value in the parsing context.
@@ -162,12 +167,14 @@ pub trait Input: Sized {
     /// # Example
     ///
     /// ```
-    /// use chomp1::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{parse_only, Input};
     ///
-    /// let r = parse_only(|i|
+    /// let r = parse_only(
+    ///     |i|
     ///     // Annotate the error type
     ///     i.ret::<_, ()>("Wohoo, success!"),
-    ///     b"some input");
+    ///     b"some input",
+    /// );
     ///
     /// assert_eq!(r, Ok("Wohoo, success!"));
     /// ```
@@ -178,17 +185,20 @@ pub trait Input: Sized {
 
     /// Returns `e` as an error value in the parsing context.
     ///
-    /// A more general version of Haskell's `fail` function in the `Monad` typeclass.
+    /// A more general version of Haskell's `fail` function in the `Monad`
+    /// typeclass.
     ///
     /// # Example
     ///
     /// ```
-    /// use chomp1::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{parse_only, Input};
     ///
-    /// let r = parse_only(|i|
+    /// let r = parse_only(
+    ///     |i|
     ///     // Annotate the value type
     ///     i.err::<(), _>("Something went wrong"),
-    ///     b"some input");
+    ///     b"some input",
+    /// );
     ///
     /// assert_eq!(r, Err((&b"some input"[..], "Something went wrong")));
     /// ```
@@ -207,7 +217,7 @@ pub trait Input: Sized {
     /// # Examples
     ///
     /// ```
-    /// use chomp1::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{parse_only, Input};
     ///
     /// let r = parse_only(|i| i.from_result::<_, ()>(Ok("foo")), b"test");
     ///
@@ -432,14 +442,15 @@ impl<T> U8Input for T where T: Input<Token = u8> {}
 
 /// The basic return type of a parser.
 ///
-/// This type satisfies a variant of the `Monad` typeclass. Due to the limitations of Rust's
-/// return types closures cannot be returned without boxing which has an unacceptable performance
-/// impact.
+/// This type satisfies a variant of the `Monad` typeclass. Due to the
+/// limitations of Rust's return types closures cannot be returned without
+/// boxing which has an unacceptable performance impact.
 ///
-/// To get around this issue and still provide a simple to use and safe (as in hard to accidentally
-/// violate the monad laws or the assumptions taken by the parser type) an `Input` wrapper is
-/// provided which ensures that the parser state is carried properly through every call to `bind`.
-/// This is also known as a Linear Type (emulated through hiding destructors and using the
+/// To get around this issue and still provide a simple to use and safe (as in
+/// hard to accidentally violate the monad laws or the assumptions taken by the
+/// parser type) an `Input` wrapper is provided which ensures that the parser
+/// state is carried properly through every call to `bind`. This is also known
+/// as a Linear Type (emulated through hiding destructors and using the
 /// annotation `#[must_use]`).
 ///
 /// Do-notation is provided by the macro `parse!`.
@@ -465,39 +476,44 @@ impl<T> U8Input for T where T: Input<Token = u8> {}
 pub struct ParseResult<I: Input, T, E>(I, Result<T, E>);
 
 impl<I: Input, T, E> ParseResult<I, T, E> {
-    /// Sequentially composes the result with a parse action `f`, passing any produced value as
-    /// the second parameter.
+    /// Sequentially composes the result with a parse action `f`, passing any
+    /// produced value as the second parameter.
     ///
-    /// The first parameter to the supplied function `f` is the parser state (`Input`). This
-    /// state is then passed on to other parsers or used to return a value or an error.
+    /// The first parameter to the supplied function `f` is the parser state
+    /// (`Input`). This state is then passed on to other parsers or used to
+    /// return a value or an error.
     ///
     /// # Automatic conversion of `E`
     ///
-    /// The error value `E` will automatically be converted using the `From` trait to the
-    /// desired type. The downside with this using the current stable version of Rust (1.4) is that
-    /// the type inferrence will currently not use the default value for the generic `V` and will
+    /// The error value `E` will automatically be converted using the `From`
+    /// trait to the desired type. The downside with this using the current
+    /// stable version of Rust (1.4) is that the type inferrence will
+    /// currently not use the default value for the generic `V` and will
     /// therefore require extra type hint for the error.
     ///
     /// # Examples
     ///
     /// ```
-    /// use chomp1::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{parse_only, Input};
     ///
-    /// let r = parse_only(|i| {
+    /// let r = parse_only(
+    ///     |i| {
     ///         i.ret("data".to_owned())
     ///         // Explicitly state the error type
     ///          .bind::<_, _, ()>(|i, x| i.ret(x + " here!"))
     ///     },
-    ///     b"test");
+    ///     b"test",
+    /// );
     ///
     /// assert_eq!(r, Ok("data here!".to_owned()));
     /// ```
     ///
-    /// Wrapping the expression in a function will both make it easier to compose and also provides
-    /// the type-hint for the error in the function signature:
+    /// Wrapping the expression in a function will both make it easier to
+    /// compose and also provides the type-hint for the error in the
+    /// function signature:
     ///
     /// ```
-    /// use chomp1::prelude::{Input, ParseResult, parse_only};
+    /// use chomp1::prelude::{parse_only, Input, ParseResult};
     ///
     /// fn parser<I: Input>(i: I, n: i32) -> ParseResult<I, i32, ()> {
     ///     i.ret(n + 10)
@@ -519,10 +535,12 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
         }
     }
 
-    /// Sequentially composes the result with a parse action `f`, discarding any produced value.
+    /// Sequentially composes the result with a parse action `f`, discarding any
+    /// produced value.
     ///
-    /// The first parameter to the supplied function `f` is the parser state (`Input`). This
-    /// state is then passed on to other parsers or used to return a value or an error.
+    /// The first parameter to the supplied function `f` is the parser state
+    /// (`Input`). This state is then passed on to other parsers or used to
+    /// return a value or an error.
     ///
     /// # Relation to `bind`
     ///
@@ -533,7 +551,7 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
     /// # Example
     ///
     /// ```
-    /// use chomp1::prelude::{Input, SimpleResult, parse_only};
+    /// use chomp1::prelude::{parse_only, Input, SimpleResult};
     ///
     /// fn g<I: Input>(i: I) -> SimpleResult<I, &'static str> {
     ///     i.ret("testing!")
@@ -554,12 +572,13 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
         self.bind(|i, _| f(i))
     }
 
-    /// Applies the function `f` on the contained data if the parser is in a success state.
+    /// Applies the function `f` on the contained data if the parser is in a
+    /// success state.
     ///
     /// # Example
     ///
     /// ```
-    /// use chomp1::prelude::{parse_only, any};
+    /// use chomp1::prelude::{any, parse_only};
     ///
     /// let r = parse_only(|i| any(i).map(|c| c + 12), b"abc");
     ///
@@ -576,16 +595,21 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
         }
     }
 
-    /// Applies the function `f` on the contained error if the parser is in an error state.
+    /// Applies the function `f` on the contained error if the parser is in an
+    /// error state.
     ///
     /// # Example
     ///
     /// ```
-    /// use chomp1::prelude::{Input, parse_only};
+    /// use chomp1::prelude::{parse_only, Input};
     ///
-    /// let r = parse_only(|i| i.err::<(), _>("this is")
-    ///          .map_err(|e| e.to_owned() + " an error"),
-    ///          b"foo");
+    /// let r = parse_only(
+    ///     |i| {
+    ///         i.err::<(), _>("this is")
+    ///             .map_err(|e| e.to_owned() + " an error")
+    ///     },
+    ///     b"foo",
+    /// );
     ///
     /// assert_eq!(r, Err((&b"foo"[..], "this is an error".to_owned())));
     /// ```
@@ -600,17 +624,22 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
         }
     }
 
-    /// Calls the function `f` with a reference of the contained data if the parser is in a success
-    /// state.
+    /// Calls the function `f` with a reference of the contained data if the
+    /// parser is in a success state.
     ///
     /// # Example
     ///
     /// ```
     /// use chomp1::prelude::{parse_only, take_while};
     ///
-    /// let r = parse_only(|i| take_while(i, |c| c != b' ').inspect(|b| {
-    ///     println!("{:?}", b); // Prints "test"
-    /// }), b"test and more");
+    /// let r = parse_only(
+    ///     |i| {
+    ///         take_while(i, |c| c != b' ').inspect(|b| {
+    ///             println!("{:?}", b); // Prints "test"
+    ///         })
+    ///     },
+    ///     b"test and more",
+    /// );
     ///
     /// assert_eq!(r, Ok(&b"test"[..]));
     /// ```
@@ -635,10 +664,11 @@ impl<I: Input, T, E> ParseResult<I, T, E> {
 ///
 /// # Motivation
 ///
-/// The `ParseResult` type is a semi-linear type, supposed to act like a linear type while used in
-/// a parsing context to carry the state. Normally it should be as restrictive as the `Input` type
-/// in terms of how much it exposes its internals, but the `IntoInner` trait implementation
-/// allows fundamental parsers and combinators to expose the inner `Result` of the `ParseResult`
+/// The `ParseResult` type is a semi-linear type, supposed to act like a linear
+/// type while used in a parsing context to carry the state. Normally it should
+/// be as restrictive as the `Input` type in terms of how much it exposes its
+/// internals, but the `IntoInner` trait implementation allows fundamental
+/// parsers and combinators to expose the inner `Result` of the `ParseResult`
 /// and act on this.
 impl<I: Input, T, E> IntoInner for ParseResult<I, T, E> {
     type Inner = (I, Result<T, E>);
@@ -651,9 +681,10 @@ impl<I: Input, T, E> IntoInner for ParseResult<I, T, E> {
 
 #[cfg(test)]
 pub mod test {
+    use std::fmt::Debug;
+
     use super::{Buffer, Input, ParseResult};
     use crate::primitives::IntoInner;
-    use std::fmt::Debug;
 
     #[test]
     fn ret() {

@@ -7,16 +7,16 @@
 //! # fn main() {
 //! use std::fs::File;
 //!
+//! use chomp1::ascii::is_whitespace;
 //! use chomp1::buffer;
 //! use chomp1::buffer::Stream;
-//! use chomp1::prelude::{token, take_while, take_while1};
-//! use chomp1::ascii::is_whitespace;
+//! use chomp1::prelude::{take_while, take_while1, token};
 //!
 //! let f = File::open("./README.md").unwrap();
 //!
 //! let mut b = buffer::Source::from_read(f, buffer::FixedSizeBuffer::new());
 //!
-//! let r = b.parse(parser!{
+//! let r = b.parse(parser! {
 //!     take_while(|c| c != b'#');
 //!     token(b'#');
 //!     take_while1(is_whitespace);
@@ -32,34 +32,35 @@ mod stateful;
 
 pub mod data_source;
 
+use std::cell::Cell;
 use std::io;
 use std::ops;
 use std::ptr;
 
-use std::cell::Cell;
-
-use crate::primitives::Guard;
-use crate::types::Buffer as InputBuffer;
-use crate::types::{Input, ParseResult};
-
 pub use self::data_source::{DataSource, RWDataSource};
 pub use self::slice::SliceStream;
 pub use self::stateful::Source;
+use crate::primitives::Guard;
+use crate::types::Buffer as InputBuffer;
+use crate::types::{Input, ParseResult};
 
 const DEFAULT_BUFFER_SIZE: usize = 6 * 1024;
 
 /// Error type for parsing using the `Stream` trait.
 #[derive(Debug)]
 pub enum StreamError<B: InputBuffer, E> {
-    /// An error occurred in the parser, the given slice indicates the part which failed.
+    /// An error occurred in the parser, the given slice indicates the part
+    /// which failed.
     ParseError(B, E),
     /// Parser failed to complete with the available data.
     Incomplete,
     /// An IO-error occurred while attempting to fill the buffer.
     IoError(io::Error),
-    /// The last parser completed successfully and there is no more input to parse.
+    /// The last parser completed successfully and there is no more input to
+    /// parse.
     EndOfInput,
-    /// The last parser failed with an incomplete state, fill the buffer and try again.
+    /// The last parser failed with an incomplete state, fill the buffer and try
+    /// again.
     ///
     /// Filling the buffer is automatic by default.
     Retry,
@@ -81,16 +82,18 @@ impl<B: InputBuffer, E: PartialEq<E>> PartialEq for StreamError<B, E> {
     }
 }
 
-/// Trait wrapping the state management in reading from a data source while parsing.
+/// Trait wrapping the state management in reading from a data source while
+/// parsing.
 pub trait Stream<'a, 'i> {
     /// The input item type, usually depending on which `DataSource` is used.
     type Input: Input + 'i;
 
-    /// Attempts to run the supplied parser `F` once on the currently populated data in this
-    /// stream, providing a borrow of the inner data storage.
+    /// Attempts to run the supplied parser `F` once on the currently populated
+    /// data in this stream, providing a borrow of the inner data storage.
     ///
-    /// If a `StreamError::Retry` is returned the consuming code it should just retry the action
-    /// (the implementation might require a separate call to refill the stream).
+    /// If a `StreamError::Retry` is returned the consuming code it should just
+    /// retry the action (the implementation might require a separate call
+    /// to refill the stream).
     fn parse<F, T, E>(
         &'a mut self,
         f: F,
@@ -101,11 +104,13 @@ pub trait Stream<'a, 'i> {
         E: 'i;
 }
 
-/// Input buffer type which contains a flag which tells if we might need to read more data.
+/// Input buffer type which contains a flag which tells if we might need to read
+/// more data.
 #[must_use]
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct InputBuf<'a, I>(
-    /// If this is set to true a parser has tried to read past the end of this buffer.
+    /// If this is set to true a parser has tried to read past the end of this
+    /// buffer.
     bool,
     /// Current buffer slice
     &'a [I],
@@ -120,7 +125,8 @@ impl<'a, I: 'a> InputBuf<'a, I> {
 
     /// Returns true if parsers want to obtain more data.
     ///
-    /// The result of the parsing is only accurate if this is false after completed parsing.
+    /// The result of the parsing is only accurate if this is false after
+    /// completed parsing.
     #[inline]
     pub fn is_incomplete(&self) -> bool {
         self.0
@@ -132,7 +138,8 @@ impl<'a, I: 'a> InputBuf<'a, I> {
         self.1.len()
     }
 
-    /// Returns true if the contained buffer is empty, may return true even when incomplete.
+    /// Returns true if the contained buffer is empty, may return true even when
+    /// incomplete.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -213,8 +220,8 @@ impl<'a, I: Copy + PartialEq> Input for InputBuf<'a, I> {
 
     #[inline]
     fn _mark(&self, _g: Guard) -> Self::Marker {
-        // Incomplete state is separate from the parsed state, no matter how we hit incomplete we
-        // want to keep it.
+        // Incomplete state is separate from the parsed state, no matter how we hit
+        // incomplete we want to keep it.
         self.1
     }
 
@@ -228,27 +235,31 @@ impl<'a, I: Copy + PartialEq> Input for InputBuf<'a, I> {
 
 /// Trait all parser buffers implement.
 ///
-/// Enables the consumer to request specific amounts of data and only consume partial parts of the
-/// buffer.
+/// Enables the consumer to request specific amounts of data and only consume
+/// partial parts of the buffer.
 pub trait Buffer<I: Copy + PartialEq>: ops::Deref<Target = [I]> {
     /// Attempt to fill the buffer using the closure `F`.
     ///
-    /// The successful return from `F` should contain the number of items successfully written to
-    /// the slice.
+    /// The successful return from `F` should contain the number of items
+    /// successfully written to the slice.
     ///
     /// # Notes
     ///
-    /// * The returned value must *NOT* be larger than the length of the given slice.
+    /// * The returned value must *NOT* be larger than the length of the given
+    ///   slice.
     ///
-    /// * Return `0` if no more data is available or if the slice is of zero length.
+    /// * Return `0` if no more data is available or if the slice is of zero
+    ///   length.
     ///
-    /// * The slice might contain uninitialized memory, do not read from the slice.
+    /// * The slice might contain uninitialized memory, do not read from the
+    ///   slice.
     fn fill<S: DataSource<Item = I>>(&mut self, _: &mut S) -> io::Result<usize>;
 
     /// Buffer attempts to clear space for additional items.
     fn request_space(&mut self, _: usize);
 
-    /// Consumes the given amount of bytes, must be less than or equal to `len()`.
+    /// Consumes the given amount of bytes, must be less than or equal to
+    /// `len()`.
     ///
     /// Does not invalidate any borrow of data from self.
     fn consume(&self, items: usize);
@@ -297,10 +308,10 @@ impl<I: Copy + PartialEq> FixedSizeBuffer<I> {
         let mut buf = Vec::with_capacity(size);
 
         // TODO: Would it be better with a Default requirement on I?
-        // We set the length here to allow fill() to hand out a slice of uninitialized memory
-        // to be populated.
-        // NOTE: We cannot actually expose this memory to the parser since self.populated will
-        // be the upper limit for the deref to slice.
+        // We set the length here to allow fill() to hand out a slice of uninitialized
+        // memory to be populated.
+        // NOTE: We cannot actually expose this memory to the parser since
+        // self.populated will be the upper limit for the deref to slice.
         unsafe {
             buf.set_len(size);
         }
@@ -409,8 +420,8 @@ impl<I: Copy + PartialEq> GrowingBuffer<I> {
     ///
     /// # Note
     ///
-    /// The actual amount of allocated memory might be larger than the specified limit, depends on
-    /// the allocator.
+    /// The actual amount of allocated memory might be larger than the specified
+    /// limit, depends on the allocator.
     #[inline]
     pub fn with_limit(limit: usize) -> Self {
         GrowingBuffer {
@@ -464,10 +475,10 @@ impl<I: Copy + PartialEq> Buffer<I> for GrowingBuffer<I> {
             let cap = self.buffer.capacity();
 
             // TODO: Would it be better with a Default requirement on I?
-            // We set the length here to allow fill() to hand out a slice of uninitialized memory
-            // to be populated.
-            // NOTE: We cannot actually expose this memory to the parser since self.populated will
-            // be the upper limit for the deref to slice.
+            // We set the length here to allow fill() to hand out a slice of uninitialized
+            // memory to be populated.
+            // NOTE: We cannot actually expose this memory to the parser since
+            // self.populated will be the upper limit for the deref to slice.
             unsafe {
                 self.buffer.set_len(cap);
             }
@@ -510,9 +521,8 @@ impl<I: Copy + PartialEq> Buffer<I> for GrowingBuffer<I> {
 mod test {
     use super::InputBuf;
     use crate::primitives::{IntoInner, Primitives};
-    use crate::types::{Input, ParseResult};
-
     use crate::types::test::run_primitives_test;
+    use crate::types::{Input, ParseResult};
 
     #[test]
     fn ret() {

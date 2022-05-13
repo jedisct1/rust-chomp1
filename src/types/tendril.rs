@@ -1,11 +1,13 @@
-//! Support for the tendril type, this is probably a bad idea since it is actually not a rope and
-//! will probably cause excessive reallocations while parsing.
+//! Support for the tendril type, this is probably a bad idea since it is
+//! actually not a rope and will probably cause excessive reallocations while
+//! parsing.
 
 use std::mem;
 
+use tendril::ByteTendril;
+
 use crate::primitives::Guard;
 use crate::types::{Buffer, Input};
-use tendril::ByteTendril;
 
 // TODO: Impl for more than byte tendril
 impl Input for ByteTendril {

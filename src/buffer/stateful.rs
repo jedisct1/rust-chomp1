@@ -1,12 +1,11 @@
 use std::io;
 
-use crate::primitives::IntoInner;
-use crate::types::{Input, ParseResult};
-
 use crate::buffer::data_source::{IteratorDataSource, ReadDataSource};
 use crate::buffer::{
     Buffer, DataSource, FixedSizeBuffer, InputBuf, RWDataSource, Stream, StreamError,
 };
+use crate::primitives::IntoInner;
+use crate::types::{Input, ParseResult};
 
 bitflags! {
     struct ParserState: u64 {
@@ -21,21 +20,24 @@ bitflags! {
     }
 }
 
-/// Manages a buffer and data source pair, enabling efficient parsing from a streaming source.
+/// Manages a buffer and data source pair, enabling efficient parsing from a
+/// streaming source.
 #[derive(Debug)]
 pub struct Source<S: DataSource, B: Buffer<S::Item>> {
     /// Source reader
     source: S,
     /// Temporary source
     buffer: B,
-    /// The requested amount of bytes to be available for reading from the buffer
+    /// The requested amount of bytes to be available for reading from the
+    /// buffer
     request: usize,
     /// Input state, if end has been reached
     state: ParserState,
 }
 
 impl<R: io::Read> Source<ReadDataSource<R>, FixedSizeBuffer<u8>> {
-    /// Creates a new `Source` from a `Read` instance with the default `FixedSizeBuffer` settings.
+    /// Creates a new `Source` from a `Read` instance with the default
+    /// `FixedSizeBuffer` settings.
     #[inline]
     pub fn new(source: R) -> Self {
         Self::with_buffer(ReadDataSource::new(source), FixedSizeBuffer::new())
@@ -51,7 +53,8 @@ impl<R: io::Read, B: Buffer<u8>> Source<ReadDataSource<R>, B> {
 }
 
 impl<RW: io::Read + io::Write> Source<RWDataSource<RW>, FixedSizeBuffer<u8>> {
-    /// Creates a new `Source` from `Read`+`Write` with the default `FixedSizeBuffer` settings.
+    /// Creates a new `Source` from `Read`+`Write` with the default
+    /// `FixedSizeBuffer` settings.
     #[inline]
     pub fn new_rw(rwsource: RW) -> Self {
         Self::with_buffer(RWDataSource::new(rwsource), FixedSizeBuffer::new())
@@ -131,7 +134,8 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
         })
     }
 
-    /// Returns the number of bytes left in the buffer which have not yet been parsed.
+    /// Returns the number of bytes left in the buffer which have not yet been
+    /// parsed.
     #[inline]
     pub fn len(&self) -> usize {
         self.buffer.len()
@@ -157,17 +161,19 @@ impl<S: DataSource, B: Buffer<S::Item>> Source<S, B> {
         &self.buffer
     }
 
-    /// Resets the buffer state, keeping the current buffer contents and cursor position.
+    /// Resets the buffer state, keeping the current buffer contents and cursor
+    /// position.
     ///
-    /// This is useful when streaming data and more data has been made available on a
-    /// socket/stream.
+    /// This is useful when streaming data and more data has been made available
+    /// on a socket/stream.
     #[inline]
     pub fn reset(&mut self) {
         self.state = ParserState::empty();
     }
 
-    /// Changes the setting automatic fill feature, `true` will make the buffer automatically
-    /// call `fill()` on the next call to `parse()` after a `Retry` was encountered.
+    /// Changes the setting automatic fill feature, `true` will make the buffer
+    /// automatically call `fill()` on the next call to `parse()` after a
+    /// `Retry` was encountered.
     // TODO: Make a part of the constructor/builder
     #[inline]
     pub fn set_autofill(&mut self, value: bool) {
@@ -293,12 +299,11 @@ where
 mod test {
     use std::io;
 
+    use super::*;
     use crate::buffer::data_source::ReadDataSource;
     use crate::buffer::{FixedSizeBuffer, Stream, StreamError};
     use crate::parsers::{any, take, take_while, Error};
     use crate::types::Input;
-
-    use super::*;
 
     fn buf(
         source: &[u8],

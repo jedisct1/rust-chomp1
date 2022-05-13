@@ -1,9 +1,11 @@
 //! Bounded versions of combinators.
 //!
-//! This module provides bounded versions of `many`, `many_till` and `skip_many`.
+//! This module provides bounded versions of `many`, `many_till` and
+//! `skip_many`.
 //!
-//! The core range types are used to describe a half-open range of successive applications of a
-//! parser. `usize` is used to specify an exact number of iterations:
+//! The core range types are used to describe a half-open range of successive
+//! applications of a parser. `usize` is used to specify an exact number of
+//! iterations:
 //!
 //! ```
 //! use chomp1::combinators::bounded::many;
@@ -26,64 +28,77 @@ use crate::types::{Input, ParseResult};
 
 /// Trait for applying a parser multiple times based on a range.
 pub trait BoundedRange {
-    // TODO: Update documentation regarding input state. Incomplete will point to the last
-    // successful parsed data. mark a backtrack point to be able to restart parsing.
-    /// Applies the parser `F` multiple times until it fails or the maximum value of the range has
-    /// been reached, collecting the successful values into a `T: FromIterator`.
+    // TODO: Update documentation regarding input state. Incomplete will point to
+    // the last successful parsed data. mark a backtrack point to be able to
+    // restart parsing.
+    /// Applies the parser `F` multiple times until it fails or the maximum
+    /// value of the range has been reached, collecting the successful
+    /// values into a `T: FromIterator`.
     ///
     /// Propagates errors if the minimum number of iterations has not been met
     ///
     /// # Panics
     ///
-    /// Will panic if the end of the range is smaller than the start of the range.
+    /// Will panic if the end of the range is smaller than the start of the
+    /// range.
     ///
     /// # Notes
     ///
     /// * Will allocate depending on the `FromIterator` implementation.
     /// * Must never yield more items than the upper bound of the range.
-    /// * Use `combinators::bounded::many` instead of calling this trait method directly.
-    /// * If the last parser succeeds on the last input item then this parser is still considered
-    ///   incomplete if the input flag END_OF_INPUT is not set as there might be more data to fill.
+    /// * Use `combinators::bounded::many` instead of calling this trait method
+    ///   directly.
+    /// * If the last parser succeeds on the last input item then this parser is
+    ///   still considered incomplete if the input flag END_OF_INPUT is not set
+    ///   as there might be more data to fill.
     fn parse_many<I: Input, T, E, F, U>(self, _: I, _: F) -> ParseResult<I, T, E>
     where
         F: FnMut(I) -> ParseResult<I, U, E>,
         T: FromIterator<U>;
 
-    /// Applies the parser `F` multiple times until it fails or the maximum value of the range has
-    /// been reached, throwing away any produced value.
+    /// Applies the parser `F` multiple times until it fails or the maximum
+    /// value of the range has been reached, throwing away any produced
+    /// value.
     ///
     /// Propagates errors if the minimum number of iterations has not been met
     ///
     /// # Panics
     ///
-    /// Will panic if the end of the range is smaller than the start of the range.
+    /// Will panic if the end of the range is smaller than the start of the
+    /// range.
     ///
     /// # Notes
     ///
     /// * Must never yield more items than the upper bound of the range.
-    /// * Use `combinators::bounded::many` instead of calling this trait method directly.
-    /// * If the last parser succeeds on the last input item then this parser is still considered
-    ///   incomplete if the input flag END_OF_INPUT is not set as there might be more data to fill.
+    /// * Use `combinators::bounded::many` instead of calling this trait method
+    ///   directly.
+    /// * If the last parser succeeds on the last input item then this parser is
+    ///   still considered incomplete if the input flag END_OF_INPUT is not set
+    ///   as there might be more data to fill.
     fn skip_many<I: Input, T, E, F>(self, _: I, _: F) -> ParseResult<I, (), E>
     where
         F: FnMut(I) -> ParseResult<I, T, E>;
 
     // TODO: Fix documentation regarding incomplete
-    /// Applies the parser `P` multiple times until the parser `F` succeeds and returns a value
-    /// populated by the values yielded by `P`. Consumes the matched part of `F`. If `F` does not
-    /// succeed within the given range `R` this combinator will propagate any failure from `P`.
+    /// Applies the parser `P` multiple times until the parser `F` succeeds and
+    /// returns a value populated by the values yielded by `P`. Consumes the
+    /// matched part of `F`. If `F` does not succeed within the given range
+    /// `R` this combinator will propagate any failure from `P`.
     ///
     /// # Panics
     ///
-    /// Will panic if the end of the range is smaller than the start of the range.
+    /// Will panic if the end of the range is smaller than the start of the
+    /// range.
     ///
     /// # Notes
     ///
     /// * Will allocate depending on the `FromIterator` implementation.
-    /// * Use `combinators::bounded::many_till` instead of calling this trait method directly.
+    /// * Use `combinators::bounded::many_till` instead of calling this trait
+    ///   method directly.
     /// * Must never yield more items than the upper bound of the range.
-    /// * If the last parser succeeds on the last input item then this combinator is still considered
-    ///   incomplete unless the parser `F` matches or the lower bound has not been met.
+    /// * If the last parser succeeds on the last input item then this
+    ///   combinator is still considered incomplete unless the parser `F`
+    ///   matches or the lower bound has not been met.
     fn many_till<I: Input, T, E, R, F, U, N, V>(self, _: I, _: R, _: F) -> ParseResult<I, T, E>
     where
         T: FromIterator<U>,
@@ -712,8 +727,9 @@ impl BoundedRange for usize {
     }
 }
 
-/// Applies the parser `F` multiple times until it fails or the maximum value of the range has
-/// been reached, collecting the successful values into a `T: FromIterator`.
+/// Applies the parser `F` multiple times until it fails or the maximum value of
+/// the range has been reached, collecting the successful values into a `T:
+/// FromIterator`.
 ///
 /// Propagates errors if the minimum number of iterations has not been met
 ///
@@ -735,8 +751,8 @@ where
     BoundedRange::parse_many(r, i, f)
 }
 
-/// Applies the parser `F` multiple times until it fails or the maximum value of the range has
-/// been reached, throwing away any produced value.
+/// Applies the parser `F` multiple times until it fails or the maximum value of
+/// the range has been reached, throwing away any produced value.
 ///
 /// Propagates errors if the minimum number of iterations has not been met
 ///
@@ -757,9 +773,10 @@ where
 }
 
 // TODO: Update documentation regarding incomplete behaviour
-/// Applies the parser `P` multiple times until the parser `F` succeeds and returns a value
-/// populated by the values yielded by `P`. Consumes the matched part of `F`. If `F` does not
-/// succeed within the given range `R` this combinator will propagate any failure from `P`.
+/// Applies the parser `P` multiple times until the parser `F` succeeds and
+/// returns a value populated by the values yielded by `P`. Consumes the matched
+/// part of `F`. If `F` does not succeed within the given range `R` this
+/// combinator will propagate any failure from `P`.
 ///
 /// # Panics
 ///
@@ -781,10 +798,10 @@ where
     BoundedRange::many_till(r, i, p, end)
 }
 
-/// Applies the parser `p` multiple times, separated by the parser `sep` and returns a value
-/// populated with the values yielded by `p`. If the number of items yielded by `p` does not fall
-/// into the range `r` and the separator or parser registers error or incomplete failure is
-/// propagated.
+/// Applies the parser `p` multiple times, separated by the parser `sep` and
+/// returns a value populated with the values yielded by `p`. If the number of
+/// items yielded by `p` does not fall into the range `r` and the separator or
+/// parser registers error or incomplete failure is propagated.
 ///
 /// # Panics
 ///
@@ -822,11 +839,10 @@ where
 
 #[cfg(test)]
 mod test {
+    use super::{many, many_till, skip_many};
     use crate::parsers::{any, string, token, Error};
     use crate::primitives::IntoInner;
     use crate::types::ParseResult;
-
-    use super::{many, many_till, skip_many};
 
     #[test]
     fn many_range_full() {

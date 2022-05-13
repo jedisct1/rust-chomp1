@@ -1,15 +1,14 @@
 //! Basic parsers.
 
+pub use self::error::Error;
 use crate::primitives::Primitives;
 use crate::types::{Buffer, Input, ParseResult};
-
-pub use self::error::Error;
 
 /// Result returned from the basic parsers.
 pub type SimpleResult<I, T> = ParseResult<I, T, Error<<I as Input>::Token>>;
 
-// Only export if we have backtraces enabled, in debug/test profiles the StackFrame is only used
-// to debug-print.
+// Only export if we have backtraces enabled, in debug/test profiles the
+// StackFrame is only used to debug-print.
 #[cfg(feature = "backtrace")]
 pub use debugtrace::StackFrame;
 
@@ -18,7 +17,7 @@ pub use debugtrace::StackFrame;
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, any};
+/// use chomp1::prelude::{any, parse_only};
 ///
 /// assert_eq!(parse_only(any, b"abc"), Ok(b'a'));
 /// ```
@@ -30,8 +29,8 @@ pub fn any<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
     }
 }
 
-/// Matches an item using ``f``, the item is returned if ``f`` yields true, otherwise this parser
-/// fails.
+/// Matches an item using ``f``, the item is returned if ``f`` yields true,
+/// otherwise this parser fails.
 ///
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
@@ -54,8 +53,9 @@ where
     }
 }
 
-/// Reads a single token, applies the transformation `F` and then succeeds with the transformed
-/// valeue if the predicate `P` yields true on this transformed value.
+/// Reads a single token, applies the transformation `F` and then succeeds with
+/// the transformed valeue if the predicate `P` yields true on this transformed
+/// value.
 ///
 /// ```
 /// use std::ascii::AsciiExt;
@@ -64,7 +64,8 @@ where
 ///
 /// let r = parse_only(
 ///     |i| satisfy_with(i, |c| AsciiExt::to_ascii_uppercase(&c), |c| c == b'T'),
-///     b"testing");
+///     b"testing",
+/// );
 ///
 /// assert_eq!(r, Ok(b'T'));
 /// ```
@@ -108,12 +109,13 @@ pub fn token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
     }
 }
 
-/// Matches a single token as long as it is not equal to `t`, returning the match on success.
+/// Matches a single token as long as it is not equal to `t`, returning the
+/// match on success.
 ///
 /// If the buffer length is 0 this parser is considered incomplete.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, not_token};
+/// use chomp1::prelude::{not_token, parse_only};
 ///
 /// assert_eq!(parse_only(|i| not_token(i, b'b'), b"abc"), Ok(b'a'));
 /// ```
@@ -128,8 +130,8 @@ pub fn not_token<I: Input>(mut i: I, t: I::Token) -> SimpleResult<I, I::Token> {
     }
 }
 
-/// Matches any item but does not consume it, on success it gives ``Some`` but if no input remains
-/// ``None`` is produced.
+/// Matches any item but does not consume it, on success it gives ``Some`` but
+/// if no input remains ``None`` is produced.
 ///
 /// This parser is never considered incomplete.
 ///
@@ -164,9 +166,11 @@ pub fn peek_next<I: Input>(mut i: I) -> SimpleResult<I, I::Token> {
     }
 }
 
-/// Matches ``num`` items no matter what they are, returning a slice of the matched items.
+/// Matches ``num`` items no matter what they are, returning a slice of the
+/// matched items.
 ///
-/// If the buffer length is less than ``num`` this parser is considered incomplete.
+/// If the buffer length is less than ``num`` this parser is considered
+/// incomplete.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, take};
@@ -182,10 +186,11 @@ pub fn take<I: Input>(mut i: I, num: usize) -> SimpleResult<I, I::Buffer> {
     }
 }
 
-/// Matches all items while ``f`` returns false, returns a slice of all the matched items.
+/// Matches all items while ``f`` returns false, returns a slice of all the
+/// matched items.
 ///
-/// If no failure can be found the parser will be considered to be incomplete as there might be
-/// more input which needs to be matched.
+/// If no failure can be found the parser will be considered to be incomplete as
+/// there might be more input which needs to be matched.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, take_while};
@@ -214,11 +219,12 @@ where
     i.ret(b)
 }
 
-/// Matches all items while ``f`` returns true, if at least one item matched this parser succeeds
-/// and returns a slice of all the matched items.
+/// Matches all items while ``f`` returns true, if at least one item matched
+/// this parser succeeds and returns a slice of all the matched items.
 ///
-/// If no failure can be found the parser will be considered to be incomplete as there might be
-/// more input which needs to be matched. If zero items were matched an error will be returned.
+/// If no failure can be found the parser will be considered to be incomplete as
+/// there might be more input which needs to be matched. If zero items were
+/// matched an error will be returned.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, take_while1};
@@ -246,7 +252,10 @@ where
 /// ```
 /// use chomp1::prelude::{parse_only, skip_while};
 ///
-/// assert_eq!(parse_only(|i| skip_while(i, |c| c == b'a'), &b"aaabc"[..]), Ok(()));
+/// assert_eq!(
+///     parse_only(|i| skip_while(i, |c| c == b'a'), &b"aaabc"[..]),
+///     Ok(())
+/// );
 /// ```
 #[inline]
 pub fn skip_while<I: Input, F>(mut i: I, f: F) -> SimpleResult<I, ()>
@@ -258,15 +267,21 @@ where
     i.ret(())
 }
 
-/// Skips over tokens in the input until `f` returns false, skips at least one token and fails if
-/// `f` does not succeed on it.
+/// Skips over tokens in the input until `f` returns false, skips at least one
+/// token and fails if `f` does not succeed on it.
 ///
 /// ```
 /// use chomp1::parse_only;
-/// use chomp1::parsers::{Error, skip_while1};
+/// use chomp1::parsers::{skip_while1, Error};
 ///
-/// assert_eq!(parse_only(|i| skip_while1(i, |c| c == b'a'), &b"aaabc"[..]), Ok(()));
-/// assert_eq!(parse_only(|i| skip_while1(i, |c| c == b'a'), &b"bbc"[..]), Err((&b"bbc"[..], Error::unexpected())));
+/// assert_eq!(
+///     parse_only(|i| skip_while1(i, |c| c == b'a'), &b"aaabc"[..]),
+///     Ok(())
+/// );
+/// assert_eq!(
+///     parse_only(|i| skip_while1(i, |c| c == b'a'), &b"bbc"[..]),
+///     Err((&b"bbc"[..], Error::unexpected()))
+/// );
 /// ```
 #[inline]
 pub fn skip_while1<I: Input, F>(i: I, mut f: F) -> SimpleResult<I, ()>
@@ -276,11 +291,11 @@ where
     satisfy(i, &mut f).then(|i| skip_while(i, f))
 }
 
-/// Matches all items until ``f`` returns true, all items to that point will be returned as a slice
-/// upon success.
+/// Matches all items until ``f`` returns true, all items to that point will be
+/// returned as a slice upon success.
 ///
-/// If no failure can be found the parser will be considered to be incomplete as there might be
-/// more input which needs to be matched.
+/// If no failure can be found the parser will be considered to be incomplete as
+/// there might be more input which needs to be matched.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, take_till};
@@ -313,19 +328,24 @@ where
     }
 }
 
-/// The predicate consumes and transforms a state argument, this parser will match everything until
-/// the predicate returns `None`.
+/// The predicate consumes and transforms a state argument, this parser will
+/// match everything until the predicate returns `None`.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, scan};
 ///
-/// let p = |i| scan(i, false, |s, c| match (s, c) {
-///     (true, b'/') => None,
-///     (_,    b'*') => Some(true),
-///     (_, _)       => Some(false),
-/// });
+/// let p = |i| {
+///     scan(i, false, |s, c| match (s, c) {
+///         (true, b'/') => None,
+///         (_, b'*') => Some(true),
+///         (..) => Some(false),
+///     })
+/// };
 ///
-/// assert_eq!(parse_only(p, b"/*test*of*scan*/ foo"), Ok(&b"/*test*of*scan*"[..]));
+/// assert_eq!(
+///     parse_only(p, b"/*test*of*scan*/ foo"),
+///     Ok(&b"/*test*of*scan*"[..])
+/// );
 /// ```
 #[inline]
 pub fn scan<I: Input, S, F>(mut i: I, s: S, mut f: F) -> SimpleResult<I, I::Buffer>
@@ -352,12 +372,17 @@ where
 /// ```
 /// use chomp1::prelude::{parse_only, run_scanner};
 ///
-/// let p = |i| run_scanner(i, 0, |s, c| match (s, c) {
-///     (b'*', b'/') => None,
-///     (_,    c)    => Some(c),
-/// });
+/// let p = |i| {
+///     run_scanner(i, 0, |s, c| match (s, c) {
+///         (b'*', b'/') => None,
+///         (_, c) => Some(c),
+///     })
+/// };
 ///
-/// assert_eq!(parse_only(p, b"/*test*of*scan*/ foo"), Ok((&b"/*test*of*scan*"[..], b'*')));
+/// assert_eq!(
+///     parse_only(p, b"/*test*of*scan*/ foo"),
+///     Ok((&b"/*test*of*scan*"[..], b'*'))
+/// );
 /// ```
 #[inline]
 // TODO: Remove Copy bound on S
@@ -399,15 +424,19 @@ pub fn take_remainder<I: Input>(mut i: I) -> SimpleResult<I, I::Buffer> {
     i.ret(b)
 }
 
-/// Matches the given slice against the parser, returning the matched slice upon success.
+/// Matches the given slice against the parser, returning the matched slice upon
+/// success.
 ///
-/// If the length of the contained data is shorter than the given slice this parser is considered
-/// incomplete.
+/// If the length of the contained data is shorter than the given slice this
+/// parser is considered incomplete.
 ///
 /// ```
 /// use chomp1::prelude::{parse_only, string};
 ///
-/// assert_eq!(parse_only(|i| string(i, b"abc"), b"abcdef"), Ok(&b"abc"[..]));
+/// assert_eq!(
+///     parse_only(|i| string(i, b"abc"), b"abcdef"),
+///     Ok(&b"abc"[..])
+/// );
 /// ```
 // TODO: Does not actually work with &str yet
 #[inline]
@@ -439,7 +468,7 @@ pub fn string<T: Copy + PartialEq, I: Input<Token = T>>(
 /// Matches the end of the input.
 ///
 /// ```
-/// use chomp1::prelude::{parse_only, token, eof};
+/// use chomp1::prelude::{eof, parse_only, token};
 ///
 /// let r = parse_only(|i| token(i, b'a').then(eof), b"a");
 ///
@@ -460,13 +489,12 @@ mod error {
     #[cfg(feature = "std")]
     use std::error;
     use std::fmt;
-
-    use debugtrace::Trace;
-
     #[cfg(feature = "noop_error")]
     use std::marker::PhantomData;
     #[cfg(not(feature = "noop_error"))]
     use std::ops::Deref;
+
+    use debugtrace::Trace;
 
     /// Empty type to eat the generic without printing
     #[cfg(feature = "noop_error")]
@@ -481,7 +509,8 @@ mod error {
         }
     }
 
-    /// `Some(T)` if it expected a specific token, `None` if it encountered something unexpected.
+    /// `Some(T)` if it expected a specific token, `None` if it encountered
+    /// something unexpected.
     #[cfg(not(feature = "noop_error"))]
     #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
     struct Expected<I>(Option<I>);
@@ -507,11 +536,13 @@ mod error {
 
     /// Common error for the basic Chomp parsers.
     ///
-    /// This is the common error for the basic Chomp parsers. It will contain information about what a
-    /// parser expected or if it encountered something unexpected (in the case of user supplied
-    /// predicates, eg. `satisfy`).
+    /// This is the common error for the basic Chomp parsers. It will contain
+    /// information about what a parser expected or if it encountered
+    /// something unexpected (in the case of user supplied predicates, eg.
+    /// `satisfy`).
     ///
-    /// This is coupled with the state found in the error state of the `ParseResult` type.
+    /// This is coupled with the state found in the error state of the
+    /// `ParseResult` type.
     #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub struct Error<I>(Trace<Expected<I>>);
 
@@ -582,8 +613,8 @@ mod error {
 
         /// Creates a new Unexpected error.
         ///
-        /// Should be used when the token was unexpected, as in the case of `satisfy` where a user
-        /// provided predicate is provided.
+        /// Should be used when the token was unexpected, as in the case of
+        /// `satisfy` where a user provided predicate is provided.
         #[inline(always)]
         pub fn unexpected() -> Self {
             create_error!(None)
@@ -598,7 +629,8 @@ mod error {
             create_error!(Some(i))
         }
 
-        /// Returns `Some(&I)` if a specific token was expected, `None` otherwise.
+        /// Returns `Some(&I)` if a specific token was expected, `None`
+        /// otherwise.
         ///
         /// Will always yield `None` since `noop_error` is enabled.
         #[inline]
@@ -607,7 +639,8 @@ mod error {
             None
         }
 
-        /// Returns `Some(&I)` if a specific token was expected, `None` otherwise.
+        /// Returns `Some(&I)` if a specific token was expected, `None`
+        /// otherwise.
         #[inline]
         #[cfg(not(feature = "noop_error"))]
         pub fn expected_token(&self) -> Option<&I> {

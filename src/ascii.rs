@@ -73,8 +73,8 @@ pub fn is_alphanumeric(c: u8) -> bool {
 /// # Example
 ///
 /// ```
-/// use chomp1::parse_only;
 /// use chomp1::ascii::skip_whitespace;
+/// use chomp1::parse_only;
 ///
 /// assert_eq!(parse_only(skip_whitespace, b" \t "), Ok(()));
 /// ```
@@ -92,8 +92,8 @@ pub fn skip_whitespace<I: Input<Token = u8>>(i: I) -> SimpleResult<I, ()> {
 /// # Example
 ///
 /// ```
-/// use chomp1::parse_only;
 /// use chomp1::ascii::digit;
+/// use chomp1::parse_only;
 ///
 /// assert_eq!(parse_only(digit, b"1"), Ok(b'1'));
 /// ```
@@ -106,14 +106,15 @@ pub fn digit<I: Input<Token = u8>>(i: I) -> SimpleResult<I, u8> {
 ///
 /// # Note
 ///
-/// The from `i8` bound here is usually smaller than the number parser requirement for signed
-/// integers (usually the smallest possible signed is `i16`).
+/// The from `i8` bound here is usually smaller than the number parser
+/// requirement for signed integers (usually the smallest possible signed is
+/// `i16`).
 ///
 /// # Example
 ///
 /// ```
-/// use chomp1::parse_only;
 /// use chomp1::ascii::{decimal, signed};
+/// use chomp1::parse_only;
 ///
 /// let r: Result<i16, _> = parse_only(|i| signed(i, decimal), b"-123");
 ///
@@ -145,8 +146,8 @@ where
 /// # Example
 ///
 /// ```
-/// use chomp1::parse_only;
 /// use chomp1::ascii::decimal;
+/// use chomp1::parse_only;
 ///
 /// let r = parse_only(decimal::<_, u8>, b"123");
 ///
@@ -180,16 +181,19 @@ fn to_decimal<
     })
 }
 
-/// Trait enabling the conversion from a matched `Buffer` to a float of the correct type.
+/// Trait enabling the conversion from a matched `Buffer` to a float of the
+/// correct type.
 pub trait Float<B: Buffer<Token = u8>>: Sized {
-    /// Given an input and a buffer matching `/[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)/`,
-    /// convert this buffer into the proper float-representation, error if it is not possible
-    /// to determine the correct representation.
+    /// Given an input and a buffer matching
+    /// `/[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)/`, convert this buffer
+    /// into the proper float-representation, error if it is not possible to
+    /// determine the correct representation.
     ///
     /// NOTES:
     ///
-    /// * Unsafe because the `parse_buffer` implementation should be able to rely on the format of
-    ///   the incoming buffer (including well-formed UTF-8).
+    /// * Unsafe because the `parse_buffer` implementation should be able to
+    ///   rely on the format of the incoming buffer (including well-formed
+    ///   UTF-8).
     unsafe fn parse_buffer<I: Input<Token = u8, Buffer = B>>(i: I, b: B) -> SimpleResult<I, Self>;
 }
 
@@ -198,12 +202,12 @@ pub trait Float<B: Buffer<Token = u8>>: Sized {
 mod float_impl {
     use std::str;
 
+    use super::Float;
     use crate::parsers::{Error, SimpleResult};
     use crate::types::{Buffer, Input};
 
-    use super::Float;
-
-    /// The macro here is to provide the default keyword in case we support specialization
+    /// The macro here is to provide the default keyword in case we support
+    /// specialization
     #[cfg(has_specialization)]
     macro_rules! parse_buffer {
         ( $i:ident, $b:ident: $b_ty:ty, $content:block ) => {
@@ -228,11 +232,12 @@ mod float_impl {
             // v only contains [-+0-9.eE], UTF-8 safe
             let s: &str = str::from_utf8_unchecked(&v[..]);
 
-            // We can skip this Result if we can guarantee that: a) the float is well-formatted, and b) the
-            // float is not too large (ie. larger than what Rust's FromStr implementation can support).
+            // We can skip this Result if we can guarantee that: a) the float is
+            // well-formatted, and b) the float is not too large (ie. larger
+            // than what Rust's FromStr implementation can support).
             //
-            // In this case we cannot wholly guarantee the size, so in that case we error (note that
-            // the error is placed after the float in this case).
+            // In this case we cannot wholly guarantee the size, so in that case we error
+            // (note that the error is placed after the float in this case).
             if let Ok(f) = s.parse() {
                 i.ret(f)
             } else {
@@ -260,18 +265,17 @@ mod float_impl {
     }
 }
 
-/// Internal module containing specialized implementations of `Float` for `&[u8]`-buffers, used
-/// when `has_specialization` is on since we can enable the unstable `specialization` feature.
-/// We also use this when not using `std` since the default implementation is not provided since it
-/// relies on `Vec`.
+/// Internal module containing specialized implementations of `Float` for
+/// `&[u8]`-buffers, used when `has_specialization` is on since we can enable
+/// the unstable `specialization` feature. We also use this when not using `std`
+/// since the default implementation is not provided since it relies on `Vec`.
 #[cfg(any(has_specialization, not(feature = "std")))]
 mod float_impl_specialized {
     use std::str;
 
+    use super::Float;
     use crate::parsers::{Error, SimpleResult};
     use crate::types::Input;
-
-    use super::Float;
 
     impl<'a> Float<&'a [u8]> for f64 {
         unsafe fn parse_buffer<I: Input<Token = u8>>(i: I, b: &'a [u8]) -> SimpleResult<I, Self> {
@@ -300,7 +304,8 @@ mod float_impl_specialized {
     }
 }
 
-/// Matches a floating point number in base-10 with an optional exponent, returning a buffer.
+/// Matches a floating point number in base-10 with an optional exponent,
+/// returning a buffer.
 ///
 /// Matches `/[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)/`
 #[inline]
@@ -332,20 +337,22 @@ pub fn match_float<I: Input<Token = u8>>(i: I) -> SimpleResult<I, I::Buffer> {
     .map(|(b, _)| b)
 }
 
-// TODO: Maybe we can use specialization to avoid allocation by specializing for a Buffer=&[u8]
-/// Parses a float into a `f64` or `f32`, will error with an `Error::unexpected` if the float
-/// does not map to a proper float.
+// TODO: Maybe we can use specialization to avoid allocation by specializing for
+// a Buffer=&[u8]
+/// Parses a float into a `f64` or `f32`, will error with an `Error::unexpected`
+/// if the float does not map to a proper float.
 ///
 /// Supports the format `/[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)/`
 ///
-/// NOTE: Currently requires an allocation due to being generic over `Input::Buffer` and
-/// internally Rust's `f32` requires a `&str` to be able to parse. If the nightly compiler is used
-/// the `Float` trait implementation for `f32` and `f64` will be specialized if the `Buffer` is
-/// `&[u8]` and will not require an allocation.
+/// NOTE: Currently requires an allocation due to being generic over
+/// `Input::Buffer` and internally Rust's `f32` requires a `&str` to be able to
+/// parse. If the nightly compiler is used the `Float` trait implementation for
+/// `f32` and `f64` will be specialized if the `Buffer` is `&[u8]` and will not
+/// require an allocation.
 ///
 /// ```
-/// use chomp1::parse_only;
 /// use chomp1::ascii::float;
+/// use chomp1::parse_only;
 ///
 /// assert_eq!(parse_only(float, &b"3.14159265359"[..]), Ok(3.14159265359));
 /// ```
@@ -364,18 +371,25 @@ fn compare_ci(a: u8, b: u8) -> bool {
     })
 }
 
-/// Matches the given slice against the parser in a case-insensitive manner, returning the matched
-/// slice upon success. Only respects ASCII characters for the case-insensitive comparison.
+/// Matches the given slice against the parser in a case-insensitive manner,
+/// returning the matched slice upon success. Only respects ASCII characters for
+/// the case-insensitive comparison.
 ///
-/// If the length of the contained data is shorter than the given slice this parser is considered
-/// incomplete.
+/// If the length of the contained data is shorter than the given slice this
+/// parser is considered incomplete.
 ///
 /// ```
-/// use chomp1::prelude::parse_only;
 /// use chomp1::ascii::string_ci;
+/// use chomp1::prelude::parse_only;
 ///
-/// assert_eq!(parse_only(|i| string_ci(i, b"abc"), b"abcdef"), Ok(&b"abc"[..]));
-/// assert_eq!(parse_only(|i| string_ci(i, b"abc"), b"aBCdef"), Ok(&b"aBC"[..]));
+/// assert_eq!(
+///     parse_only(|i| string_ci(i, b"abc"), b"abcdef"),
+///     Ok(&b"abc"[..])
+/// );
+/// assert_eq!(
+///     parse_only(|i| string_ci(i, b"abc"), b"aBCdef"),
+///     Ok(&b"aBC"[..])
+/// );
 /// ```
 pub fn string_ci<I: Input<Token = u8>>(mut i: I, s: &'static [u8]) -> SimpleResult<I, I::Buffer> {
     use crate::primitives::Primitives;
@@ -656,8 +670,8 @@ mod test {
             string_ci("äbc".as_bytes(), "ä".as_bytes()).into_inner(),
             (&b"bc"[..], Ok("ä".as_bytes()))
         );
-        // We need to slice a bit, since the first byte of the two-byte ä and Ä are is the same,
-        // so that one will match
+        // We need to slice a bit, since the first byte of the two-byte ä and Ä are is
+        // the same, so that one will match
         assert_eq!(
             string_ci("ÄBC".as_bytes(), "ä".as_bytes()).into_inner(),
             (

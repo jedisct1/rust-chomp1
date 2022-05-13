@@ -99,7 +99,8 @@ fn parse_object<I: Input<Token = u8>>(i: I) -> ParseResult<I, HashMap<String, Va
     })
 }
 
-/// Whitespace + comma, separates key-value pairs in objects and values in arrays
+/// Whitespace + comma, separates key-value pairs in objects and values in
+/// arrays
 fn separator<I: Input<Token = u8>>(i: I) -> ParseResult<I, (), Error> {
     skip_while(i, is_whitespace).then(|i| token(i, b',').then(|i| skip_while(i, is_whitespace)))
 }

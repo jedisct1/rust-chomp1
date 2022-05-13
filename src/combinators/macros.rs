@@ -1,5 +1,6 @@
-/// Macro to implement and run a parser iterator, it provides the ability to add an extra state
-/// variable into it and also provide a size_hint as well as a pre- and on-next hooks.
+/// Macro to implement and run a parser iterator, it provides the ability to add
+/// an extra state variable into it and also provide a size_hint as well as a
+/// pre- and on-next hooks.
 macro_rules! run_iter {
     (
         input:     $input:expr,
@@ -101,8 +102,8 @@ macro_rules! run_iter {
     } }
 }
 
-/// Version of run_iter which allows for an additional parser to be run which can terminate
-/// iteration early.
+/// Version of run_iter which allows for an additional parser to be run which
+/// can terminate iteration early.
 macro_rules! run_iter_till {
     (
         input:     $input:expr,
@@ -205,9 +206,10 @@ macro_rules! run_iter_till {
     } }
 }
 
-/// Used with `run_iter_till!` macro to attempt to end iteration early. If the test succeeds the
-/// buffer position will be updated and the state set to `EndStateTill::EndSuccess` and a `None`
-/// will be returned, stopping the iteration. If the test fails execution continues.
+/// Used with `run_iter_till!` macro to attempt to end iteration early. If the
+/// test succeeds the buffer position will be updated and the state set to
+/// `EndStateTill::EndSuccess` and a `None` will be returned, stopping the
+/// iteration. If the test fails execution continues.
 macro_rules! iter_till_end_test {
     ($the_self:ident) => {{
         // TODO: Remove the branches here (ie. take + unwrap)
