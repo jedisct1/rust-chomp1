@@ -71,19 +71,19 @@ impl<'a, I: Copy + PartialEq> Buffer for &'a [I] {
     where
         F: FnMut(Self::Token),
     {
-        for c in (&self[..]).iter().cloned() {
+        for c in self[..].iter().cloned() {
             f(c)
         }
     }
 
     fn len(&self) -> usize {
         // Slice to reach inherent method to prevent infinite recursion
-        (&self[..]).len()
+        self[..].len()
     }
 
     #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token> {
-        (&self[..]).to_vec()
+        self[..].to_vec()
     }
 
     #[cfg(feature = "std")]
@@ -116,12 +116,12 @@ impl<'a> Buffer for &'a str {
     }
 
     fn is_empty(&self) -> bool {
-        (&self[..]).is_empty()
+        self[..].is_empty()
     }
 
     #[cfg(feature = "std")]
     fn to_vec(&self) -> Vec<Self::Token> {
-        (&self[..]).chars().collect()
+        self[..].chars().collect()
     }
 
     #[cfg(feature = "std")]
@@ -978,7 +978,7 @@ pub mod test {
         {
             let b = s.consume(2);
 
-            assert_eq!(b.is_some(), true);
+            assert!(b.is_some());
             buffer_eq_slice(b.unwrap(), &b"ab"[..], &f);
         }
 
@@ -991,7 +991,7 @@ pub mod test {
         {
             let b = s.consume(3);
 
-            assert_eq!(b.is_some(), true);
+            assert!(b.is_some());
             buffer_eq_slice(b.unwrap(), &b"abc"[..], &f);
         }
 
@@ -1003,7 +1003,7 @@ pub mod test {
             let mut v = Vec::new();
 
             assert_eq!(b.len(), 3);
-            assert_eq!(b.is_empty(), false);
+            assert!(!b.is_empty());
 
             b.iterate(|c| {
                 v.push(c);
@@ -1011,7 +1011,7 @@ pub mod test {
 
             assert_eq!(v, [f(b'a'), f(b'b'), f(b'c')]);
             assert_eq!(b.len(), 3);
-            assert_eq!(b.is_empty(), false);
+            assert!(!b.is_empty());
         } else {
             panic!("s.consume(3) failed");
         }

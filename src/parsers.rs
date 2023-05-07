@@ -476,7 +476,7 @@ pub fn string<T: Copy + PartialEq, I: Input<Token = T>>(
 /// ```
 #[inline]
 pub fn eof<I: Input>(mut i: I) -> SimpleResult<I, ()> {
-    if i.peek() == None {
+    if i.peek().is_none() {
         i.ret(())
     } else {
         i.err(Error::unexpected())
@@ -664,7 +664,7 @@ mod test {
     #[test]
     fn parse_decimal() {
         fn is_digit(c: u8) -> bool {
-            (b'0'..=b'9').contains(&c)
+            c.is_ascii_digit()
         }
 
         fn decimal<'i, I: Input<Token = u8, Buffer = &'i [u8]>>(i: I) -> SimpleResult<I, usize> {

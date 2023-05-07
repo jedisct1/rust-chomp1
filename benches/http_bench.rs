@@ -68,7 +68,7 @@ fn is_end_of_line(c: u8) -> bool {
     c == b'\r' || c == b'\n'
 }
 fn is_http_version(c: u8) -> bool {
-    (b'0'..=b'9').contains(&c) || c == b'.'
+    c.is_ascii_digit() || c == b'.'
 }
 
 fn end_of_line<I: U8Input>(i: I) -> SimpleResult<I, u8> {

@@ -1,7 +1,7 @@
 use std::iter;
 
 use benchmark_simple::*;
-use chomp1;
+
 use chomp1::buffer::InputBuf;
 use chomp1::prelude::*;
 

@@ -71,8 +71,8 @@ impl<B: InputBuffer, E: PartialEq<E>> PartialEq for StreamError<B, E> {
     fn eq(&self, other: &StreamError<B, E>) -> bool {
         match (self, other) {
             (
-                &StreamError::ParseError(ref b1, ref e1),
-                &StreamError::ParseError(ref b2, ref e2),
+                StreamError::ParseError(b1, e1),
+                StreamError::ParseError(b2, e2),
             ) => b1 == b2 && e1 == e2,
             (&StreamError::Incomplete, &StreamError::Incomplete)
             | (&StreamError::EndOfInput, &StreamError::EndOfInput)
@@ -553,112 +553,112 @@ mod test {
         run_primitives_test(InputBuf::new(b"abc"), |x| x);
 
         let mut b = InputBuf::new(b"a");
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 1);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.peek();
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 1);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.pop();
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
         assert_eq!(b.peek(), None);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
         assert_eq!(b.pop(), None);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
 
         let mut b = InputBuf::new(b"ab");
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 2);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.consume(1);
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 1);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.consume(1);
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
         assert_eq!(b.consume(1), None);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
 
         let mut b = InputBuf::new(b"ab");
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 2);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         assert_eq!(b.consume(3), None);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 2);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
 
         let mut b = InputBuf::new(b"ab");
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 2);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         assert_eq!(b.consume_while(|_| true), &b"ab"[..]);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
 
         let mut b = InputBuf::new(b"ab");
         assert_eq!(b.consume_while(|c| c == b'a'), &b"a"[..]);
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 1);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         assert_eq!(b.consume_while(|c| c == b'b'), &b"b"[..]);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
         assert_eq!(b.consume_while(|c| c == b'b'), &b""[..]);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
 
         let mut b = InputBuf::new(b"abc");
         let m = b.mark();
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 3);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.consume(3);
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
         assert_eq!(b.consume_from(m), &b"abc"[..]);
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
 
         let mut b = InputBuf::new(b"abc");
         let m = b.mark();
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 3);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.consume(2);
         b.consume(2);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 1);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         let b = b.restore(m);
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 3);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
 
         let mut b = InputBuf::new(b"abc");
-        assert_eq!(b.is_incomplete(), false);
+        assert!(!b.is_incomplete());
         assert_eq!(b.len(), 3);
-        assert_eq!(b.is_empty(), false);
+        assert!(!b.is_empty());
         b.consume_remaining();
-        assert_eq!(b.is_incomplete(), true);
+        assert!(b.is_incomplete());
         assert_eq!(b.len(), 0);
-        assert_eq!(b.is_empty(), true);
+        assert!(b.is_empty());
     }
 
     #[test]

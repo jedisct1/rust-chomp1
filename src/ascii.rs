@@ -12,13 +12,13 @@ use crate::types::{Buffer, Input};
 /// Lowercase ASCII predicate.
 #[inline]
 pub fn is_lowercase(c: u8) -> bool {
-    (b'a'..=b'z').contains(&c)
+    c.is_ascii_lowercase()
 }
 
 /// Uppercase ASCII character predicate.
 #[inline]
 pub fn is_uppercase(c: u8) -> bool {
-    (b'A'..=b'Z').contains(&c)
+    c.is_ascii_uppercase()
 }
 
 /// ASCII whitespace predicate.
@@ -51,7 +51,7 @@ pub fn is_end_of_line(c: u8) -> bool {
 /// ASCII digit predicate.
 #[inline]
 pub fn is_digit(c: u8) -> bool {
-    (b'0'..=b'9').contains(&c)
+    c.is_ascii_digit()
 }
 
 /// ASCII alphabetic predicate.
