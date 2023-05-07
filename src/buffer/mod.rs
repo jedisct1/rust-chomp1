@@ -70,10 +70,9 @@ impl<B: InputBuffer, E: PartialEq<E>> PartialEq for StreamError<B, E> {
     #[inline]
     fn eq(&self, other: &StreamError<B, E>) -> bool {
         match (self, other) {
-            (
-                StreamError::ParseError(b1, e1),
-                StreamError::ParseError(b2, e2),
-            ) => b1 == b2 && e1 == e2,
+            (StreamError::ParseError(b1, e1), StreamError::ParseError(b2, e2)) => {
+                b1 == b2 && e1 == e2
+            }
             (&StreamError::Incomplete, &StreamError::Incomplete)
             | (&StreamError::EndOfInput, &StreamError::EndOfInput)
             | (&StreamError::Retry, &StreamError::Retry) => true,

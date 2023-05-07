@@ -1,6 +1,6 @@
 [package]
 name = "chomp1"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Martin Wernstål <m4rw3r@gmail.com>"]
 description = "A fast monadic-style parser combinator designed to work on stable Rust."
 documentation = "https://docs.rs/chomp1"
@@ -28,8 +28,7 @@ conv = "0.3.3"
 either = "1.8.1"
 debugtrace = "0.1.0"
 tendril = { version = "0.4.3", optional = true }
-
-compiletest_rs = "0.10.1"
+compiletest_rs = { version = "0.10.1", optional = true }
 clippy = { version = ">0.0.1", optional = true }
 
 [dev-dependencies]
@@ -39,7 +38,7 @@ benchmark-simple = "0.1.7"
 default = ["std"]
 noop_error = []
 std = []
-unstable = []
+unstable = ["compiletest_rs"]
 
 [[bench]]
 name = "benchmark"
