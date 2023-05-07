@@ -8,6 +8,7 @@ use crate::primitives::IntoInner;
 use crate::types::{Input, ParseResult};
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     struct ParserState: u64 {
         /// The parser which was last run on the buffer did not manage to complete with the data
         /// available in the buffer.
